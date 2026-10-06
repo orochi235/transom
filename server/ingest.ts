@@ -267,6 +267,7 @@ export function watchInbox(onLand: (landed: Landed) => void) {
   // Adoptions queued behind the gate before the watcher is ready: `ready`
   // waits on them, so the reaper never sees a store missing queued cards.
   const adoptions: Promise<void>[] = []
+  let collecting = true
   const take = (sourcePath: string, adopting: boolean) => {
     // Several paths reach the same artifact on purpose: the watch, the
     // adopting scan, the sweep, and the events ingest's own stamp rewrite
@@ -285,7 +286,7 @@ export function watchInbox(onLand: (landed: Landed) => void) {
         inFlight.delete(sourcePath)
       }
     })
-    if (adopting) adoptions.push(done)
+    if (adopting && collecting) adoptions.push(done)
   }
 
   // Ignored silently, an unheld file is invisible twice over: never on the
@@ -333,6 +334,8 @@ export function watchInbox(onLand: (landed: Landed) => void) {
     },
     ready: watcher.ready.then(async () => {
       await Promise.allSettled(adoptions)
+      collecting = false
+      adoptions.length = 0
     }),
   }
 }

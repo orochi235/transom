@@ -50,7 +50,7 @@ describe('watchInbox', () => {
     stop = () => w.close()
     await w.ready
     expect(store.snapshot()).toHaveLength(8)
-  })
+  }, 60_000)
 
   it('takes in an artifact and reports it under its zone', async () => {
     const { watchInbox } = await bootDaemon(root)

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -93,5 +93,18 @@ describe('reap', () => {
     await reap(deps())
     expect(existsSync(join(root, 'logs', 'daemon.log.1'))).toBe(true)
     expect(existsSync(join(root, 'logs', 'client.log.1'))).toBe(false)
+  })
+
+  it('still returns a Disk when a log cannot be rotated', async () => {
+    await mkdir(join(root, 'logs', 'daemon.log'))
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const d = deps()
+      const disk = await reap({ ...d, limits: { ...d.limits, logMaxBytes: 1 } })
+      expect(disk.over).toBe(false)
+      expect(spy).toHaveBeenCalledWith('[reap] could not rotate', join(root, 'logs', 'daemon.log'), expect.any(String))
+    } finally {
+      spy.mockRestore()
+    }
   })
 })
