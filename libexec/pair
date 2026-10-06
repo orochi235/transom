@@ -34,11 +34,20 @@ root="${TRANSOM_ROOT:-$HOME/transom}"
 token=$(tr -d '\n' < "$root/token")
 wall="http://$(scutil --get LocalHostName).local:${TRANSOM_PORT:-8787}"
 
-if [ -n "$head" ]; then
-  on 'brew install --HEAD orochi235/tap/transom 2>/dev/null || brew upgrade --fetch-HEAD orochi235/tap/transom'
+rc=0
+on 'command -v brew >/dev/null || exit 3' || rc=$?
+case "$rc" in
+  0) ;;
+  3) fail "no Homebrew on $host" ;;
+  *) fail "cannot reach $host over ssh" ;;
+esac
+formula=orochi235/tap/transom
+if on "brew list $formula >/dev/null 2>&1"; then
+  if [ -n "$head" ]; then step="reinstall --HEAD"; else step=upgrade; fi
 else
-  on 'brew install orochi235/tap/transom 2>/dev/null; brew upgrade orochi235/tap/transom 2>/dev/null || true'
+  if [ -n "$head" ]; then step="install --HEAD"; else step=install; fi
 fi
+on "brew $step $formula" >&2 || fail "brew $step $formula failed on $host"
 [ "$(on 'transom protocol' 2>/dev/null || true)" = 1 ] ||
   fail "$host's transom cannot send remotely yet. Publish a release, or pair with --head."
 [ -n "${TRANSOM_PAIR_NO_WIRE:-}" ] || on 'transom wire' >/dev/null
@@ -47,8 +56,9 @@ printf 'TRANSOM_WALL=%s\nTRANSOM_TOKEN=%s\n' "$wall" "$token" |
 # The node may be shared, so the token reaches curl in a file, as the CLI does.
 on 'umask 077; . ~/transom/wall.env
 h=$(mktemp "${TMPDIR:-/tmp}/transom-pair.XXXXXX")
+trap "rm -f \"$h\"" EXIT
+trap "exit 1" HUP INT TERM
 printf "Authorization: Bearer %s\nX-Transom-Protocol: 1\n" "$TRANSOM_TOKEN" > "$h"
-curl -sf -m 5 -H "@$h" "$TRANSOM_WALL/api/whoami"; rc=$?
-rm -f "$h"; exit $rc' >/dev/null ||
+curl -sf -m 5 -H "@$h" "$TRANSOM_WALL/api/whoami"' >/dev/null ||
   fail "$host has the token but cannot reach $wall"
 echo "$host sends to $wall"

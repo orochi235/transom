@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { spawn } from 'node:child_process'
-import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -20,8 +20,11 @@ beforeEach(async () => {
   }
   // pair calls `ssh -o BatchMode=yes HOST CMD`: drop the option and the host,
   // then run the command as the node would, against a temp home.
-  await stub('ssh', `shift 3; HOME=${nodeHome} TRANSOM_ROOT=${nodeHome}/transom exec sh -c "$*"`)
-  await stub('brew', 'exit 0')
+  await mkdir(join(nodeHome, 'tmp'))
+  await stub('ssh', `shift 3; HOME=${nodeHome} TRANSOM_ROOT=${nodeHome}/transom TMPDIR=${nodeHome}/tmp exec sh -c "$*"`)
+  // Logs each call; `brew list` says installed while the marker file exists.
+  await stub('brew', `echo "$*" >> ${stubs}/brew.log
+case "$1" in list) [ -f ${stubs}/installed ] ;; esac`)
   await stub('transom', `exec sh ${TRANSOM} "$@"`)
   // Records its arguments and the headers file it was handed, so the test can
   // check the token stayed out of argv.
@@ -69,6 +72,44 @@ describe('transom pair', () => {
     const { code, err } = await pair(['studio'])
     expect(code).not.toBe(0)
     expect(err).toContain('cannot reach http://wallhost.local:8787')
+  })
+  it('installs from HEAD where transom is not installed yet', async () => {
+    expect((await pair(['--head', 'studio'])).code).toBe(0)
+    expect(await readFile(join(stubs, 'brew.log'), 'utf8')).toContain('install --HEAD orochi235/tap/transom')
+  })
+  it('reinstalls from HEAD over a release install', async () => {
+    await writeFile(join(stubs, 'installed'), '')
+    expect((await pair(['--head', 'studio'])).code).toBe(0)
+    expect(await readFile(join(stubs, 'brew.log'), 'utf8')).toContain('reinstall --HEAD orochi235/tap/transom')
+  })
+  it('upgrades a release install, and installs where there is none', async () => {
+    await writeFile(join(stubs, 'installed'), '')
+    expect((await pair(['studio'])).code).toBe(0)
+    expect(await readFile(join(stubs, 'brew.log'), 'utf8')).toContain('upgrade orochi235/tap/transom')
+    await rm(join(stubs, 'installed'))
+    await rm(join(stubs, 'brew.log'))
+    expect((await pair(['studio'])).code).toBe(0)
+    expect(await readFile(join(stubs, 'brew.log'), 'utf8')).toContain('install orochi235/tap/transom')
+  })
+  it("shows brew's own error when the install fails", async () => {
+    await writeFile(join(stubs, 'brew'), '#!/bin/sh\ncase "$1" in list) exit 1 ;; esac\necho "Error: no bottle for you" >&2\nexit 1\n')
+    const { code, err } = await pair(['studio'])
+    expect(code).not.toBe(0)
+    expect(err).toContain('Error: no bottle for you')
+    expect(err).not.toContain('Publish a release')
+  })
+  it('says so when the node has no Homebrew', async () => {
+    await rm(join(stubs, 'brew'))
+    // Hides any real Homebrew from the node's shell.
+    await writeFile(join(stubs, 'ssh'), `#!/bin/sh\nshift 3; cmd=$(printf '%s' "$*" | sed 's#/opt/homebrew/bin#/nonexistent#')\nHOME=${nodeHome} PATH=${stubs}:/usr/bin:/bin exec sh -c "$cmd"\n`)
+    const { code, err } = await pair(['studio'])
+    expect(code).not.toBe(0)
+    expect(err).toContain('transom pair: no Homebrew on studio')
+  })
+  it('leaves no token file on the node when the ssh session drops mid-check', async () => {
+    await writeFile(join(stubs, 'curl'), '#!/bin/sh\nkill -HUP $PPID\nexit 0\n')
+    await pair(['studio'])
+    expect(await readdir(join(nodeHome, 'tmp'))).toEqual([])
   })
   it('refuses on a wall with no token yet', async () => {
     await rm(join(wall, 'token'))
