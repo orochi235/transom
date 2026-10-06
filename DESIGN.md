@@ -1185,6 +1185,11 @@ Base64-over-WebSocket hitches every time a render lands.
   goes back to ordinary. A thread would let the agent follow up on the same
   card, and needs a history in the lightbox and a way to mark it resolved. Worth
   it only if follow-ups keep arriving as new cards.
+- **The daemon answers the whole LAN, unauthenticated.** It listens on
+  `*:8787`, and every endpoint takes requests from any host, including
+  `POST /api/items/:id/open`, which runs `open -a` on the wall host. The
+  remote-senders design puts only its own endpoints behind a token. Whether
+  the rest follow, with the wall page exempt by loopback, is undecided.
 - **Multi-monitor.** Does a zone ever span displays, or is one board one screen?
 - **Where unsent marks go when their session has gone — TODO, deliberately
   unbuilt.** Today a drawing whose sender has exited stays on its card until
