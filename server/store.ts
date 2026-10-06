@@ -123,12 +123,17 @@ export function snapshot(): WallItem[] {
   return [...entries.values()].map((e) => e.item)
 }
 
+/** Whether a card may be evicted for space: not pinned, not asked, not marked,
+ *  not in an eternal zone. */
+const mayEvict = (e: Entry): boolean =>
+  !e.item.keptAt && !isOpen(e.item) && !holdsMarks(e) && !isEternal(zoneLifetime(e.item.zone))
+
 /** What the reaper may take when the wall is over its cap, oldest first. A
  *  pinned card, an open question, undelivered marks and an eternal zone are
  *  never on it. */
 export function evictable(): { id: string; bornAt: number; paths: string[] }[] {
   return [...entries.values()]
-    .filter((e) => !e.item.keptAt && !isOpen(e.item) && !holdsMarks(e) && !isEternal(zoneLifetime(e.item.zone)))
+    .filter(mayEvict)
     .sort((a, b) => a.item.bornAt - b.item.bornAt)
     .map((e) => ({
       id: e.item.id,
@@ -153,7 +158,7 @@ export function inUse(): { ids: Set<string>; caches: Set<string> } {
 /** Expiry for space. Announced like a TTL running out, so never an undo step. */
 export async function evict(id: string): Promise<boolean> {
   const entry = entries.get(id)
-  if (!entry) return false
+  if (!entry || !mayEvict(entry)) return false
   await expire(entry)
   return true
 }

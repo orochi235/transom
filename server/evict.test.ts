@@ -42,6 +42,34 @@ describe('evictable', () => {
     await card(store, 'q', { question: 'which?' })
     expect(store.evictable()).toEqual([])
   })
+  it('passes over a card holding pending marks', async () => {
+    const store = await freshStore(root)
+    const sourcePath = join(root, 'inbox', 'z', 'marked.png')
+    await writeFile(sourcePath, 'png')
+    const item = { id: 'marked', url: '', origUrl: '', zone: 'z', name: 'marked', path: sourcePath, bornAt: 1000, w: 1, h: 1 } as WallItem
+    store.add({
+      item,
+      sourcePath,
+      cachePath: join(root, '.cache', 'marked.webp'),
+      marks: {
+        status: 'pending',
+        text: 'awaiting review',
+        at: Date.now(),
+        marks: {},
+        card: 'marked',
+        caption: 'test',
+      },
+    })
+    expect(store.evictable()).toEqual([])
+  })
+  it('passes over a card in an eternal zone', async () => {
+    const store = await freshStore(root)
+    const zones = await import('./zones.ts')
+    await zones.load()
+    await zones.set('z', { lifetime: 'eternal' })
+    await card(store, 'eternal', { bornAt: 1000 })
+    expect(store.evictable()).toEqual([])
+  })
 })
 
 describe('evict', () => {
@@ -55,6 +83,17 @@ describe('evict', () => {
     expect(existsSync(join(root, 'inbox', 'z', 'a.png'))).toBe(false)
     expect(existsSync(join(root, 'trash', 'a-z'))).toBe(true)
     expect(await store.undoExpiry()).toEqual([])
+  })
+  it('does not evict a card pinned after evictable listed it', async () => {
+    const store = await freshStore(root)
+    await card(store, 'a')
+    const list = store.evictable()
+    expect(list).toHaveLength(1)
+    // Card becomes pinned after evictable() was called
+    await store.keep('a', true)
+    // evict should now return false and not expire it
+    expect(await store.evict('a')).toBe(false)
+    expect(existsSync(join(root, 'inbox', 'z', 'a.png'))).toBe(true)
   })
 })
 
