@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { allowed, isLoopback, loadToken } from './auth.ts'
+import express from 'express'
+import { allowed, guard, isLoopback, loadToken } from './auth.ts'
 
 let dir: string
 beforeEach(async () => { dir = await mkdtemp(join(tmpdir(), 'transom-auth-')) })
@@ -28,5 +29,26 @@ describe('allowed', () => {
     expect(allowed('192.168.1.9', undefined, 't')).toBe(false)
     expect(allowed('192.168.1.9', 'Bearer nope', 't')).toBe(false)
     expect(allowed('192.168.1.9', 'Bearer t', 't')).toBe(true)
+  })
+})
+
+describe('guard behind the proxy', () => {
+  async function call(headers: Record<string, string>) {
+    const app = express()
+    app.get('/x', guard('t'), (_req, res) => void res.send('ok'))
+    const server = app.listen(0)
+    await new Promise((r) => server.once('listening', r))
+    const addr = server.address()
+    const res = await fetch(`http://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}/x`, { headers })
+    server.close()
+    return res.status
+  }
+  it('judges the forwarded peer, not the proxy', async () => {
+    expect(await call({ 'X-Forwarded-For': '192.168.1.9' })).toBe(401)
+    expect(await call({ 'X-Forwarded-For': '127.0.0.1, 192.168.1.9' })).toBe(401)
+    expect(await call({ 'X-Forwarded-For': '192.168.1.9', Authorization: 'Bearer t' })).toBe(200)
+  })
+  it('lets plain loopback through', async () => {
+    expect(await call({})).toBe(200)
   })
 })

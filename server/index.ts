@@ -234,7 +234,7 @@ app.post('/api/marks/claim', guard(token), express.json(), async (req, res) => {
   res.json({ ok: true, claimed })
 })
 
-app.get('/api/marks/:file', guard(token), (req, res) => {
+app.get('/api/marks/:file', (req, res) => {
   const id = /^([0-9a-f]{32})\.png$/.exec(String(req.params.file))?.[1]
   if (!id) return void res.sendStatus(404)
   res.sendFile(pngOf(id), { dotfiles: 'allow' }, (err) => {

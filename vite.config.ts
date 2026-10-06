@@ -17,7 +17,7 @@ const sibling = (name: string, entries: Record<string, string>) => {
 }
 
 const daemon = `http://localhost:${DAEMON_PORT}`
-const proxy = { target: daemon, ws: true, changeOrigin: false }
+const proxy = { target: daemon, ws: true, changeOrigin: false, xfwd: true }
 
 
 export default defineConfig({

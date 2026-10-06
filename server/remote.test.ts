@@ -5,6 +5,7 @@ import { existsSync, readdirSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { request } from 'node:http'
 import { PROTOCOL } from '@shared/remote.ts'
 
 let root: string
@@ -37,6 +38,17 @@ function upload(zone: string, body: string, headers: Record<string, string> = {}
     method: 'POST',
     headers: { ...auth, 'X-Transom-Name': '.png', 'X-Transom-Sidecar': b64({ caption: 'c' }), ...headers },
     body,
+  })
+}
+
+function raw(method: string, path: string) {
+  return new Promise<number>((resolve, reject) => {
+    const req = request(base, { method, path, headers: { ...auth, 'X-Transom-Name': '.png' } }, (res) => {
+      res.resume()
+      resolve(res.statusCode ?? 0)
+    })
+    req.on('error', reject)
+    req.end('x')
   })
 }
 
@@ -84,6 +96,20 @@ describe('POST /api/inbox/:zone', () => {
     expect((await upload('z', 'x', { 'X-Transom-Name': '.exe' })).status).toBe(400)
   })
 
+  it('refuses a literal .. zone, which fetch would normalize away', async () => {
+    await start()
+    const status = await raw('POST', '/api/inbox/..')
+    expect(status).toBe(400)
+  })
+
+  it('keeps only @self apps, pointed at the inbox copy', async () => {
+    await start()
+    const apps = [{ name: 'Terminal', path: '/tmp/x.command' }, { name: 'Preview', path: '@self' }, { name: '', path: '@self' }]
+    const res = await upload('z', 'x', { 'X-Transom-Sidecar': b64({ apps }) })
+    const { path } = (await res.json()) as { path: string }
+    expect(JSON.parse(await readFile(`${path}.transom.json`, 'utf8')).apps).toEqual([{ name: 'Preview', path }])
+  })
+
   it('refuses a video when the wall has no ffmpeg', async () => {
     await start({ hasFfmpeg: () => false })
     expect((await upload('z', 'x', { 'X-Transom-Name': '.mp4' })).status).toBe(422)
@@ -109,6 +135,8 @@ describe('POST /api/inbox/:zone', () => {
     await new Promise((r) => setTimeout(r, 200))
     const zone = join(root, 'inbox', 'z')
     expect(existsSync(zone) ? readdirSync(zone) : []).toEqual([])
+    const incoming = join(root, '.incoming')
+    expect(existsSync(incoming) ? readdirSync(incoming) : []).toEqual([])
   })
 
   it('keeps the token it started with after the file is deleted', async () => {
@@ -133,6 +161,15 @@ describe('GET /api/answers/:name', () => {
   it('says 204 when nothing came in time', async () => {
     await start()
     expect((await fetch(`${base}/api/answers/q.png?wait=1`, { headers: auth })).status).toBe(204)
+  })
+  it('does not wait forever on an unparseable wait', async () => {
+    await start()
+    expect((await fetch(`${base}/api/answers/q.png?wait=abc`, { headers: auth })).status).toBe(204)
+    expect((await fetch(`${base}/api/answers/q.png?wait=1&wait=2`, { headers: auth })).status).toBe(204)
+  })
+  it('refuses a name made of dots', async () => {
+    await start()
+    expect(await raw('GET', '/api/answers/.')).toBe(400)
   })
   it('refuses a name with a path in it', async () => {
     await start()

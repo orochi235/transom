@@ -74,7 +74,9 @@ export function mountRemote(
 
     const { zoneRoot, hued, ...stamp } = side
     if (Array.isArray(stamp.apps))
-      stamp.apps = stamp.apps.map((a: { name?: unknown; path?: unknown }) => (a?.path === '@self' ? { ...a, path: dest } : a))
+      stamp.apps = stamp.apps
+        .filter((a: { name?: unknown; path?: unknown }) => a?.path === '@self' && typeof a.name === 'string' && a.name !== '')
+        .map((a: object) => ({ ...a, path: dest }))
     await mkdir(join(config.inbox, zone), { recursive: true })
     if (typeof zoneRoot === 'string' && zoneRoot !== '') {
       await mkdir(join(config.root, 'zones'), { recursive: true })
@@ -89,9 +91,9 @@ export function mountRemote(
 
   app.get('/api/answers/:name', gate, sameProtocol, async (req, res) => {
     const name = String(req.params.name)
-    if (!FILE.test(name) || name.includes('..')) return void res.status(400).end()
+    if (!FILE.test(name) || name.includes('..') || /^\.+$/.test(name)) return void res.status(400).end()
     const file = join(config.answers, name)
-    const until = Date.now() + Math.min(Number(req.query.wait ?? 0), 60) * 1000
+    const until = Date.now() + Math.min(Math.max(Number(req.query.wait) || 0, 0), 60) * 1000
     for (;;) {
       if (existsSync(file)) {
         const text = await readFile(file, 'utf8')
