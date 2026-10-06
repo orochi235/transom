@@ -72,6 +72,14 @@ describe('remote mode', () => {
     expect(side.session).toBe('sess-1')
   })
 
+  it.each(['shot[1].png', 'a{1}.png'])('sends a file named %s without curl globbing it', async (name) => {
+    await writeFile(join(node, name), `bytes of ${name}`)
+    const { code, out, err } = await run(['post', name])
+    expect(err).not.toContain('bad range')
+    expect(code).toBe(0)
+    expect(await readFile(out.trim(), 'utf8')).toBe(`bytes of ${name}`)
+  })
+
   it('marks the session as one that sent remotely, for the hook', async () => {
     await run(['post', 'shot.png'])
     await expect(readFile(join(node, 'remote-sessions', 'sess-1'), 'utf8')).resolves.toBe('')

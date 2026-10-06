@@ -185,9 +185,7 @@ const mark = (marker) => {
 
 /** What the session is told when the wall turns this host away. */
 export function refusal(status, wall) {
-  if (status === 401)
-    return `transom: the wall at ${wall} refused this host's token — run \`transom pair ${hostname().replace(/\.local$/, '')}\` on the wall.\n`
-  return `transom: the wall at ${wall} speaks a different protocol — run \`brew upgrade transom\` on this host.\n`
+  return `transom: the wall at ${wall} refused this host's token — run \`transom pair ${hostname().replace(/\.local$/, '')}\` on the wall.\n`
 }
 
 /** Claims from the wall host, and swaps each drawing's path there for a copy
@@ -211,7 +209,7 @@ export async function claimRemote(session, env, root = transomRoot()) {
       signal: AbortSignal.timeout(2000),
     })
     rmSync(down, { force: true })
-    if (res.status === 401 || res.status === 426) {
+    if (res.status === 401) {
       mark(refused)
       return { claimed: [], notice: refusal(res.status, env.wall) }
     }

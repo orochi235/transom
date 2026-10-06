@@ -305,13 +305,6 @@ describe('a remote wall', () => {
     expect(sentRemotely('.wall-refused', dir)).toBe(false)
   })
 
-  it('tells the session to upgrade when the wall speaks another protocol', async () => {
-    const { server, env } = await refusing(426)
-    const { notice } = await claimRemote('s1', env, dir)
-    server.close()
-    expect(notice).toContain('brew upgrade transom')
-  })
-
   it('keeps recent ones', () => {
     touch('remote-sessions/s1')
     pruneRemote(dir, Date.now() + 3_600_000)

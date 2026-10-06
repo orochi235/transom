@@ -1093,8 +1093,7 @@ answer poll, when it runs under Claude Code.
 from `TRANSOM_WALL` on each tool call, with a 2-second timeout. Each drawing is
 downloaded into `~/transom/marks/remote/`; one that will not download is handed
 to the session as its URL on the wall. When the wall turns the token away (401)
-the session is told to run `transom pair <this host>` on the wall, and when it
-speaks another protocol (426), to run `brew upgrade transom` on this host.
+the session is told to run `transom pair <this host>` on the wall.
 After any failed claim the hook waits 30 seconds before asking again. It
 deletes its markers and drawings after 24 hours.
 

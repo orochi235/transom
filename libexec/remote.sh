@@ -31,7 +31,7 @@ remote_load() {
 }
 
 remote_curl() {
-  curl -sS --connect-timeout 3 -H "@$remote_tmp/headers" "$@"
+  curl -gsS --connect-timeout 3 -H "@$remote_tmp/headers" "$@"
 }
 
 remote_refused() {
