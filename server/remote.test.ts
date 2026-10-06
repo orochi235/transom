@@ -177,6 +177,45 @@ describe('GET /api/answers/:name', () => {
   })
 })
 
+describe('a remote session that is sending or waiting', () => {
+  it('reads live while its ask polls, so a markup answers the question', async () => {
+    await start()
+    const marks = await import('./markup.ts')
+    const store = await import('./store.ts')
+    const sender = { session: 'sess-r', host: 'studio' }
+    expect(await marks.isLive(sender)).toBe(false)
+    const res = await fetch(`${base}/api/answers/a.png?wait=0`, { headers: { ...auth, 'X-Transom-Session': 'sess-r' } })
+    expect(res.status).toBe(204)
+    expect(await marks.isLive(sender)).toBe(true)
+
+    const source = join(root, 'inbox', 'z', 'a.png')
+    await mkdir(join(root, 'inbox', 'z'), { recursive: true })
+    await writeFile(source, 'png')
+    store.add({
+      item: { id: 'a1', url: '/img/a1', origUrl: '/orig/a1', zone: 'z', name: 'a', path: source, bornAt: 1000, w: 1, h: 1, question: 'better?' },
+      sourcePath: source,
+      cachePath: '',
+      sender,
+    })
+    await store.markUp('a1', { png: Buffer.from('composite'), marks: {}, text: 'bluer' })
+    expect(await readFile(join(root, 'answers', 'a.png'), 'utf8')).toBe(`marked\n${marks.pngOf('a1')}\nbluer`)
+  })
+
+  it('reads live from the send itself', async () => {
+    await start()
+    const marks = await import('./markup.ts')
+    expect((await upload('z', 'x', { 'X-Transom-Session': 'sess-s' })).status).toBe(200)
+    expect(await marks.isLive({ session: 'sess-s', host: 'studio' })).toBe(true)
+  })
+
+  it('is not seen without the token', async () => {
+    await start()
+    const marks = await import('./markup.ts')
+    await fetch(`${base}/api/answers/a.png?wait=0`, { headers: { ...auth, Authorization: 'Bearer no', 'X-Transom-Session': 'sess-x' } })
+    expect(await marks.isLive({ session: 'sess-x', host: 'studio' })).toBe(false)
+  })
+})
+
 describe('GET /api/whoami', () => {
   it('names the wall to a sender holding the token', async () => {
     await start()

@@ -96,6 +96,24 @@ describe('remote mode', () => {
     expect(out.trim().split('\n').pop()).toBe('left')
   })
 
+  it('keeps a waiting ask live on the wall, and exits 5 when it is marked up', async () => {
+    const marks = await import('./markup.ts')
+    const child = run(['ask', 'which?', 'shot.png'])
+    const { readdirSync, existsSync } = await import('node:fs')
+    let sent: string | undefined
+    while (!sent) {
+      const dir = join(wall, 'inbox', 'z')
+      sent = existsSync(dir) ? readdirSync(dir).find((f) => f.endsWith('.png')) : undefined
+      await new Promise((r) => setTimeout(r, 50))
+    }
+    expect(await marks.isLive({ session: 'sess-1', host: 'node' })).toBe(true)
+    await mkdir(join(wall, 'answers'), { recursive: true })
+    await writeFile(join(wall, 'answers', sent), 'marked\n/wall/marks/a1.png\nbluer\n')
+    const { code, out } = await child
+    expect(code).toBe(5)
+    expect(out).toContain('/wall/marks/a1.png')
+  })
+
   it('keeps waiting through a wall that drops off mid-question', async () => {
     const child = run(['ask', 'which?', 'shot.png'])
     let sent: string | undefined

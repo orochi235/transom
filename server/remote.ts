@@ -11,6 +11,7 @@ import { config } from './config.ts'
 import { guard } from './auth.ts'
 import { save } from './atomic.ts'
 import { HELD_EXT, kindOf } from './kind.ts'
+import { sawSession } from './markup.ts'
 
 const ZONE = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/
 /** `.ttl30m.png`, `.png`: the part of the name `bin/transom` puts after its UUID. */
@@ -20,6 +21,14 @@ const FILE = /^[A-Za-z0-9._-]+$/
 const sameProtocol: RequestHandler = (req, res, next) => {
   if (req.headers['x-transom-protocol'] === String(PROTOCOL)) return next()
   res.status(426).type('text').send(`transom: this wall speaks protocol ${PROTOCOL}. Run brew upgrade transom on the sending host.\n`)
+}
+
+/** A remote session blocked in `transom ask` runs no hook, so its polls are
+ *  what keep it live for a markup to answer the question. */
+const seen: RequestHandler = (req, _res, next) => {
+  const session = req.headers['x-transom-session']
+  if (typeof session === 'string' && session !== '') sawSession(session)
+  next()
 }
 
 let ffmpeg: boolean | undefined
@@ -42,7 +51,7 @@ export function mountRemote(
   const gate = guard(opts.token, { trustLoopback: opts.trustLoopback })
   const hasFfmpeg = opts.hasFfmpeg ?? ffmpegHere
 
-  app.post('/api/inbox/:zone', gate, sameProtocol, async (req, res) => {
+  app.post('/api/inbox/:zone', gate, sameProtocol, seen, async (req, res) => {
     const zone = String(req.params.zone)
     const suffix = SUFFIX.exec(String(req.headers['x-transom-name'] ?? ''))
     if (!ZONE.test(zone) || zone.includes('..') || !suffix || !HELD_EXT.includes(suffix[2]!))
@@ -89,7 +98,7 @@ export function mountRemote(
     res.json({ path: dest })
   })
 
-  app.get('/api/answers/:name', gate, sameProtocol, async (req, res) => {
+  app.get('/api/answers/:name', gate, sameProtocol, seen, async (req, res) => {
     const name = String(req.params.name)
     if (!FILE.test(name) || name.includes('..') || /^\.+$/.test(name)) return void res.status(400).end()
     const file = join(config.answers, name)

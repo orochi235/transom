@@ -22,6 +22,12 @@ remote_load() {
   trap 'remote_clean; trap - INT; kill -INT $$' INT
   trap 'remote_clean; trap - TERM; kill -TERM $$' TERM
   printf 'Authorization: Bearer %s\nX-Transom-Protocol: %s\n' "$TRANSOM_TOKEN" "$TRANSOM_PROTOCOL" > "$remote_tmp/headers"
+  # Every send and answer poll names the session: a session blocked in `ask`
+  # runs no hook, and without this the wall reads it as gone.
+  case "${session:-}" in
+    ""|*[!A-Za-z0-9._-]*) ;;
+    *) printf 'X-Transom-Session: %s\n' "$session" >> "$remote_tmp/headers" ;;
+  esac
 }
 
 remote_curl() {
