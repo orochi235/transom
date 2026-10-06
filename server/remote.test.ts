@@ -88,6 +88,40 @@ describe('POST /api/inbox/:zone', () => {
     expect(existsSync(join(root, 'inbox'))).toBe(false)
   })
 
+  it('names both protocols when they differ', async () => {
+    await start()
+    const res = await upload('z', 'x', { 'X-Transom-Protocol': '0' })
+    expect(await res.text()).toContain(`this wall speaks protocol ${PROTOCOL}, the sender spoke 0`)
+  })
+
+  it('stamps a host on a sidecar that lacks one, so no pid is checked on the wall host', async () => {
+    await start()
+    const bare = (await (await upload('z', 'x')).json()) as { path: string }
+    expect(JSON.parse(await readFile(`${bare.path}.transom.json`, 'utf8')).host).toBe('remote')
+    const named = (await (await upload('z', 'x', { 'X-Transom-Sidecar': b64({ host: 'studio' }) })).json()) as { path: string }
+    expect(JSON.parse(await readFile(`${named.path}.transom.json`, 'utf8')).host).toBe('studio')
+  })
+
+  it('refuses a send over the cap from its length, before reading the body', async () => {
+    await start()
+    const { config } = await import('./config.ts')
+    const status = await new Promise<number>((resolve, reject) => {
+      const req = request(base, {
+        method: 'POST',
+        path: '/api/inbox/z',
+        headers: { ...auth, 'X-Transom-Name': '.png', 'Content-Length': String(config.uploadMaxBytes + 1) },
+      }, (res) => {
+        res.resume()
+        resolve(res.statusCode ?? 0)
+        req.destroy()
+      })
+      req.on('error', reject)
+      req.write('x')
+    })
+    expect(status).toBe(413)
+    expect(existsSync(join(root, '.incoming'))).toBe(false)
+  })
+
   it('refuses a zone or name that could leave the inbox', async () => {
     await start()
     expect((await upload('..%2Fx', 'x')).status).toBe(400)

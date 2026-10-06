@@ -55,9 +55,11 @@ remote_send() {
   fi
   body="$remote_tmp/reply"
   rc=0
-  code=$(remote_curl -o "$body" -w '%{http_code}' \
+  # -T streams the file (or stdin, as -) where --data-binary would hold it all
+  # in memory; the speed limit gives up on a wall that stops reading.
+  code=$(remote_curl -o "$body" -w '%{http_code}' --speed-limit 1 --speed-time 30 \
     -H "X-Transom-Name: $2" -H "X-Transom-Sidecar: $side" \
-    --data-binary "@$1" "$TRANSOM_WALL/api/inbox/$3" 2>"$remote_tmp/err") || rc=$?
+    -X POST -T "$1" "$TRANSOM_WALL/api/inbox/$3" 2>"$remote_tmp/err") || rc=$?
   case "$rc" in
     0) ;;
     6|7|28)

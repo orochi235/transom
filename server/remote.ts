@@ -19,8 +19,12 @@ const SUFFIX = /^(\.ttl[A-Za-z0-9:-]+)?(\.[a-z0-9]+)$/
 const FILE = /^[A-Za-z0-9._-]+$/
 
 const sameProtocol: RequestHandler = (req, res, next) => {
-  if (req.headers['x-transom-protocol'] === String(PROTOCOL)) return next()
-  res.status(426).type('text').send(`transom: this wall speaks protocol ${PROTOCOL}. Run brew upgrade transom on the sending host.\n`)
+  const spoke = req.headers['x-transom-protocol']
+  if (spoke === String(PROTOCOL)) return next()
+  res.status(426).type('text').send(
+    `transom: this wall speaks protocol ${PROTOCOL}, the sender spoke ${typeof spoke === 'string' ? spoke : 'none'}. ` +
+      'Run brew upgrade transom on whichever side is older.\n',
+  )
 }
 
 /** A remote session blocked in `transom ask` runs no hook, so its polls are
@@ -82,6 +86,8 @@ export function mountRemote(
     }
 
     const { zoneRoot, hued, ...stamp } = side
+    // Without a host the store would check the sender's pid against this host's processes.
+    if (typeof stamp.host !== 'string' || stamp.host === '') stamp.host = 'remote'
     if (Array.isArray(stamp.apps))
       stamp.apps = stamp.apps
         .filter((a: { name?: unknown; path?: unknown }) => a?.path === '@self' && typeof a.name === 'string' && a.name !== '')
