@@ -8,6 +8,7 @@ const root = process.env.TRANSOM_ROOT ?? join(homedir(), 'transom')
 
 export const config = {
   root,
+  token: join(root, 'token'),
   inbox: join(root, 'inbox'),
   cache: join(root, '.cache'),
   trash: join(root, 'trash'),
