@@ -1,10 +1,11 @@
-import { mkdtempSync, mkdirSync, utimesSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs'
+import http from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
-  candidates, isImage, marksMessage, marksWaiting, message, onWall, pathsInCommand, previewHere,
-  sent, toNudge,
+  candidates, claimRemote, isImage, marksMessage, marksWaiting, message, onWall, pathsInCommand,
+  previewHere, pruneRemote, sent, sentRemotely, toNudge, wallEnv,
 } from './wall-nudge.mjs'
 
 let dir
@@ -181,5 +182,70 @@ describe('marksMessage', () => {
   })
   it('says nothing for nothing claimed', () => {
     expect(marksMessage([])).toBe('')
+  })
+})
+
+describe('a remote wall', () => {
+  const ID = 'a'.repeat(32)
+
+  const serve = async (claimed) => {
+    const server = http.createServer((req, res) => {
+      if (req.headers.authorization !== 'Bearer tok') { res.statusCode = 401; return res.end() }
+      if (req.url === '/api/marks/claim') {
+        res.setHeader('Content-Type', 'application/json')
+        return res.end(JSON.stringify({ ok: true, claimed }))
+      }
+      if (req.url === `/api/marks/${ID}.png`) return res.end('PNG')
+      res.statusCode = 404
+      res.end()
+    })
+    await new Promise((r) => server.listen(0, r))
+    return { server, env: { wall: `http://127.0.0.1:${server.address().port}`, token: 'tok' } }
+  }
+
+  it('reads wall.env', () => {
+    writeFileSync(path.join(dir, 'wall.env'), 'TRANSOM_WALL=http://w:8787\nTRANSOM_TOKEN=tok\n')
+    expect(wallEnv(dir)).toEqual({ wall: 'http://w:8787', token: 'tok' })
+  })
+
+  it('has no wall without wall.env', () => {
+    expect(wallEnv(dir)).toBe(null)
+  })
+
+  it('knows a session sent there, sanitizing its id as the CLI does', () => {
+    touch('remote-sessions/a_b')
+    expect(sentRemotely('a/b', dir)).toBe(true)
+    expect(sentRemotely('other', dir)).toBe(false)
+    expect(sentRemotely('', dir)).toBe(false)
+  })
+
+  it('claims with the token and keeps a local copy of each drawing', async () => {
+    const { server, env } = await serve([{ id: ID, caption: 'c', zone: 'z', image: '/wall/marks/x.png', text: '' }])
+    const got = await claimRemote('s1', env, dir)
+    server.close()
+    expect(got[0].image).toBe(path.join(dir, 'marks', `${ID}.png`))
+    expect(readFileSync(got[0].image, 'utf8')).toBe('PNG')
+  })
+
+  it('skips a claimed id that is not a plain hash, writing nothing outside marks/', async () => {
+    const { server, env } = await serve([{ id: '../../evil', caption: 'c', zone: 'z', image: '/x.png', text: '' }])
+    const got = await claimRemote('s1', env, dir)
+    server.close()
+    expect(got).toEqual([])
+    expect(existsSync(path.join(dir, '..', 'evil.png'))).toBe(false)
+  })
+
+  it('forgets session markers and drawings after a day', () => {
+    touch('remote-sessions/s1')
+    touch('marks/abc.png')
+    pruneRemote(dir, Date.now() + 25 * 3_600_000)
+    expect(existsSync(path.join(dir, 'remote-sessions', 's1'))).toBe(false)
+    expect(existsSync(path.join(dir, 'marks', 'abc.png'))).toBe(false)
+  })
+
+  it('keeps recent ones', () => {
+    touch('remote-sessions/s1')
+    pruneRemote(dir, Date.now() + 3_600_000)
+    expect(existsSync(path.join(dir, 'remote-sessions', 's1'))).toBe(true)
   })
 })

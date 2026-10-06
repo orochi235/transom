@@ -8,7 +8,7 @@
 // generated files into its scratchpad; this fires after the fact, when the fix
 // is one command.
 
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import path from 'node:path'
 
@@ -142,6 +142,71 @@ export async function claimMarks(session, port = process.env.TRANSOM_PORT || 878
   }
 }
 
+const DAY_MS = 86_400_000
+const MARK_ID = /^[0-9a-f]{32}$/
+
+/** The wall this host sends to, from the file `transom pair` wrote, or null. */
+export function wallEnv(root = transomRoot()) {
+  try {
+    const text = readFileSync(path.join(root, 'wall.env'), 'utf8')
+    const get = (k) => new RegExp(`^${k}=(.*)$`, 'm').exec(text)?.[1]?.trim()
+    const wall = get('TRANSOM_WALL')
+    const token = get('TRANSOM_TOKEN')
+    return wall && token ? { wall, token } : null
+  } catch {
+    return null
+  }
+}
+
+export function sentRemotely(session, root = transomRoot()) {
+  if (typeof session !== 'string' || session === '') return false
+  return existsSync(path.join(root, 'remote-sessions', session.replace(/[^A-Za-z0-9._-]/g, '_')))
+}
+
+/** Claims from the wall host, and swaps each drawing's path there for a copy
+ *  here — the session cannot read the wall host's disk. An id that is not a
+ *  plain hash is skipped: it becomes a filename here. */
+export async function claimRemote(session, env, root = transomRoot()) {
+  const headers = { Authorization: `Bearer ${env.token}`, 'X-Transom-Protocol': '1' }
+  try {
+    const res = await fetch(`${env.wall}/api/marks/claim`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session }),
+      signal: AbortSignal.timeout(2000),
+    })
+    const body = await res.json()
+    const claimed = Array.isArray(body?.claimed) ? body.claimed : []
+    mkdirSync(path.join(root, 'marks'), { recursive: true })
+    const kept = []
+    for (const c of claimed) {
+      if (typeof c?.id !== 'string' || !MARK_ID.test(c.id)) continue
+      const png = await fetch(`${env.wall}/api/marks/${c.id}.png`, { headers, signal: AbortSignal.timeout(5000) })
+      const local = path.join(root, 'marks', `${c.id}.png`)
+      writeFileSync(local, Buffer.from(await png.arrayBuffer()))
+      c.image = local
+      kept.push(c)
+    }
+    return kept
+  } catch {
+    return []
+  }
+}
+
+export function pruneRemote(root = transomRoot(), now = Date.now()) {
+  for (const dir of ['remote-sessions', 'marks']) {
+    let names = []
+    try { names = readdirSync(path.join(root, dir)) } catch { continue }
+    for (const n of names) {
+      const p = path.join(root, dir, n)
+      try {
+        const st = statSync(p)
+        if (st.isFile() && Math.max(st.mtimeMs, st.ctimeMs) < now - DAY_MS) rmSync(p)
+      } catch { /* gone already, or not ours to remove */ }
+    }
+  }
+}
+
 export function marksMessage(claimed) {
   return claimed
     .map((c) => {
@@ -180,7 +245,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     writeSeen(seen)
   }
 
-  const marked = marksWaiting(p?.session_id) ? marksMessage(await claimMarks(p.session_id)) : ''
+  const env = sentRemotely(p?.session_id) ? wallEnv() : null
+  if (env) pruneRemote()
+  const claimed = env
+    ? await claimRemote(p.session_id, env)
+    : marksWaiting(p?.session_id) ? await claimMarks(p.session_id) : []
+  const marked = marksMessage(claimed)
 
   const paths = candidates(p)
   const hits = paths.length > 0 && !(await previewHere(p?.cwd)) ? toNudge(paths, { now, seen }) : []
