@@ -12,6 +12,7 @@
 #   transom stat                  what launchd thinks, and whether they answer
 #   transom wire [--off] [--dry]  the skill, the hook and this command, for
 #                                 Claude Code
+#   transom pair HOST             lets another Mac send here (run on the wall)
 #
 # `post` and `ask` both take:
 #   --zone Z                   the zone; defaults to the repo directory name
@@ -63,7 +64,7 @@
 # triggers on.
 set -eu
 
-usage() { sed -n '2,63p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,64p' "$0" | sed 's/^# \{0,1\}//'; }
 
 # `wire` leaves this on PATH as a symlink, and the rest of the checkout is
 # beside the file it points at. Homebrew's formula says where instead.
@@ -80,6 +81,7 @@ verb=${1:-help}
 case "$verb" in
   post|ask|wait|zone) ;;
   protocol) echo 1; exit 0 ;;
+  pair) exec sh "$TRANSOM_HOME/libexec/pair" "$@" ;;
   install|up|down|cycle|stat|wire)
     if [ "$verb" = wire ]; then exec node "$TRANSOM_HOME/libexec/wire.mjs" "$@"; fi
     exec sh "$TRANSOM_HOME/libexec/agents" "$verb" "$@"

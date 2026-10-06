@@ -1,0 +1,54 @@
+#!/bin/sh
+# `transom pair HOST`: let another Mac send to the wall on this one. Run on the
+# wall host, which can reach the fleet over ssh when the fleet cannot reach it.
+#
+#   transom pair studio          install transom there and point it here
+#   transom pair --head studio   the same, from the tap's HEAD
+#   transom pair --off studio    stop it sending here; leaves the install
+set -eu
+
+fail() { echo "transom pair: $1" >&2; exit 1; }
+
+off="" head=""
+while :; do
+  case "${1:-}" in
+    --off) off=1; shift ;;
+    --head) head=1; shift ;;
+    -?*) fail "no such flag: $1" ;;
+    *) break ;;
+  esac
+done
+[ $# -eq 1 ] || fail "takes one host: transom pair studio"
+host=$1
+# A non-login ssh shell has no Homebrew on PATH.
+on() { ssh -o BatchMode=yes "$host" "PATH=\$PATH:/opt/homebrew/bin; $1"; }
+
+if [ -n "$off" ]; then
+  on 'rm -f ~/transom/wall.env'
+  echo "$host no longer sends to this wall"
+  exit 0
+fi
+
+root="${TRANSOM_ROOT:-$HOME/transom}"
+[ -f "$root/token" ] || fail "no token yet. The daemon makes one when it starts: transom up"
+token=$(tr -d '\n' < "$root/token")
+wall="http://$(scutil --get LocalHostName).local:${TRANSOM_PORT:-8787}"
+
+if [ -n "$head" ]; then
+  on 'brew install --HEAD orochi235/tap/transom 2>/dev/null || brew upgrade --fetch-HEAD orochi235/tap/transom'
+else
+  on 'brew install orochi235/tap/transom 2>/dev/null; brew upgrade orochi235/tap/transom 2>/dev/null || true'
+fi
+[ "$(on 'transom protocol' 2>/dev/null || true)" = 1 ] ||
+  fail "$host's transom cannot send remotely yet. Publish a release, or pair with --head."
+[ -n "${TRANSOM_PAIR_NO_WIRE:-}" ] || on 'transom wire' >/dev/null
+printf 'TRANSOM_WALL=%s\nTRANSOM_TOKEN=%s\n' "$wall" "$token" |
+  on 'umask 077; mkdir -p ~/transom; cat > ~/transom/wall.env'
+# The node may be shared, so the token reaches curl in a file, as the CLI does.
+on 'umask 077; . ~/transom/wall.env
+h=$(mktemp "${TMPDIR:-/tmp}/transom-pair.XXXXXX")
+printf "Authorization: Bearer %s\nX-Transom-Protocol: 1\n" "$TRANSOM_TOKEN" > "$h"
+curl -sf -m 5 -H "@$h" "$TRANSOM_WALL/api/whoami"; rc=$?
+rm -f "$h"; exit $rc' >/dev/null ||
+  fail "$host has the token but cannot reach $wall"
+echo "$host sends to $wall"
