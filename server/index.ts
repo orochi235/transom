@@ -5,6 +5,8 @@ import { createServer } from 'node:http'
 import { spawn } from 'node:child_process'
 import { mkdir, readFile } from 'node:fs/promises'
 import { config } from './config.ts'
+import { loadToken, guard } from './auth.ts'
+import { mountRemote } from './remote.ts'
 import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
@@ -31,8 +33,10 @@ await settings.load()
 await zones.load()
 await mkdir(config.inbox, { recursive: true })
 await mkdir(config.cache, { recursive: true })
+const token = await loadToken(config.token)
 
 const app = express()
+mountRemote(app, { token })
 const http = createServer(app)
 const wss = new WebSocketServer({ server: http, path: '/ws' })
 const clients = new Set<WebSocket>()
@@ -221,7 +225,7 @@ app.post('/api/items/:id/markup/discard', async (req, res) => {
 // The hook, at a session's tool call, collecting every drawing waiting for
 // it. Delivered the moment it is handed over: the hook prints it to the model
 // in the same breath.
-app.post('/api/marks/claim', express.json(), async (req, res) => {
+app.post('/api/marks/claim', guard(token), express.json(), async (req, res) => {
   const session = (req.body as { session?: unknown } | undefined)?.session
   if (typeof session !== 'string' || session === '') return void res.status(400).json({ ok: false })
   const { claimed, news } = await store.claimMarks(session)
@@ -230,8 +234,8 @@ app.post('/api/marks/claim', express.json(), async (req, res) => {
   res.json({ ok: true, claimed })
 })
 
-app.get('/api/marks/:file', (req, res) => {
-  const id = /^([0-9a-f]{32})\.png$/.exec(req.params.file)?.[1]
+app.get('/api/marks/:file', guard(token), (req, res) => {
+  const id = /^([0-9a-f]{32})\.png$/.exec(String(req.params.file))?.[1]
   if (!id) return void res.sendStatus(404)
   res.sendFile(pngOf(id), { dotfiles: 'allow' }, (err) => {
     if (err && !res.headersSent) res.sendStatus(404)
