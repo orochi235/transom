@@ -20,7 +20,7 @@ export function parseStamp(blob: unknown): Stamp {
   if (blob === null || typeof blob !== 'object' || Array.isArray(blob)) return {}
   const held = blob as Record<string, unknown>
   const out: Stamp = {}
-  for (const key of ['caption', 'zone', 'repo', 'sha', 'attention', 'note', 'kept', 'sandbox', 'reply', 'closed', 'closedAt', 'why', 'group', 'groupLabel', 'choice', 'session'] as const) {
+  for (const key of ['caption', 'zone', 'repo', 'sha', 'attention', 'note', 'kept', 'sandbox', 'reply', 'closed', 'closedAt', 'why', 'group', 'groupLabel', 'choice', 'session', 'host'] as const) {
     const value = held[key]
     if (typeof value === 'string' && value !== '') out[key] = value
   }

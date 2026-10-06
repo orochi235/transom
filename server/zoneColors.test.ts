@@ -70,3 +70,11 @@ test("takes a zone icon from the .hued's sfkey, apart from its color", async () 
   expect(await readZoneIcons()).toEqual({ weasel: 'hare' })
   expect(await readZoneColors()).toEqual({ weasel: '#1b2a41', wod: '#222222' })
 })
+
+test('takes the color from the record when the sender sent its .hued', async () => {
+  await writeFile(
+    join(transomRoot, 'zones', 'remote.json'),
+    JSON.stringify({ root: join(projects, 'does-not-exist'), hued: 'background=#1b2a41  # navy\n' }),
+  )
+  expect(await read()).toEqual({ remote: '#1b2a41' })
+})

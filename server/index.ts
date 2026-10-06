@@ -15,7 +15,7 @@ import { groupBadge } from '@shared/groups.ts'
 import { mountMeshView } from './meshview.ts'
 import { watchZoneColors } from './zoneColors.ts'
 import { readPins, setPinned } from './pins.ts'
-import { pngOf } from './markup.ts'
+import { pngOf, sawSession } from './markup.ts'
 import * as zones from './zones.ts'
 import * as settings from './settings.ts'
 import { zoneCounts } from './zoneCounts.ts'
@@ -228,6 +228,7 @@ app.post('/api/items/:id/markup/discard', async (req, res) => {
 app.post('/api/marks/claim', guard(token), express.json(), async (req, res) => {
   const session = (req.body as { session?: unknown } | undefined)?.session
   if (typeof session !== 'string' || session === '') return void res.status(400).json({ ok: false })
+  sawSession(session)
   const { claimed, news } = await store.claimMarks(session)
   for (const n of news) announceMarks(n)
   if (claimed.length > 0) console.log(`[marks] ${claimed.length} to ${session.slice(0, 8)}`)

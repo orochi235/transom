@@ -46,7 +46,8 @@ async function readZoneHued(): Promise<Record<string, Hued>> {
     names.map(async (name) => {
       const zone = basename(name, '.json')
       try {
-        const { root } = JSON.parse(await readFile(join(zonesDir, name), 'utf8'))
+        const { root, hued } = JSON.parse(await readFile(join(zonesDir, name), 'utf8'))
+        if (typeof hued === 'string') return void (out[zone] = parseHued(hued))
         if (typeof root !== 'string' || !root) return
         out[zone] = parseHued(await readFile(join(root, '.hued'), 'utf8'))
       } catch {
@@ -75,8 +76,8 @@ export function watchZoneColors(
       await Promise.all(
         names.map(async (name) => {
           try {
-            const { root } = JSON.parse(await readFile(join(zonesDir, name), 'utf8'))
-            if (typeof root === 'string' && root) roots.push(join(root, '.hued'))
+            const { root, hued } = JSON.parse(await readFile(join(zonesDir, name), 'utf8'))
+            if (typeof hued !== 'string' && typeof root === 'string' && root) roots.push(join(root, '.hued'))
           } catch {
             // Unreadable record; nothing to watch for it.
           }

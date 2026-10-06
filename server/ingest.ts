@@ -132,7 +132,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
   const note = sidecar?.note ?? question
   const keptAt = keptFrom(sidecar)
   const sender = sidecar?.session
-    ? { session: sidecar.session, ...(sidecar.pid ? { pid: sidecar.pid } : {}) }
+    ? { session: sidecar.session, ...(sidecar.pid ? { pid: sidecar.pid } : {}), ...(sidecar.host ? { host: sidecar.host } : {}) }
     : undefined
   // A drawing sent back before a restart is still on the card after it.
   const drawn = await marks.read(id)

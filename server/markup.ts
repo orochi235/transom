@@ -22,7 +22,17 @@ import type { Markup } from '@shared/protocol.ts'
 
 /** Who sent an artifact: the Claude Code session and its process, as
  *  `bin/transom` saw them in its environment. */
-export type Sender = { session: string; pid?: number }
+export type Sender = { session: string; pid?: number; host?: string }
+
+/** How recently a session on another host must have asked for its marks to
+ *  count as running. Its hook asks on every tool call, so two minutes of
+ *  silence is a session that has stopped. */
+export const REMOTE_LIVE_MS = 120_000
+const lastSeen = new Map<string, number>()
+
+export function sawSession(session: string, now = Date.now()) {
+  lastSeen.set(session, now)
+}
 
 export type MarkRecord = {
   status: Markup['status']
@@ -79,7 +89,11 @@ export async function flagWaiting(session: string, waiting: boolean): Promise<vo
  * alive and is still a claude process, since a pid is reused once it exits.
  * No pid recorded is not live — nothing can be said about it.
  */
-export async function isLive(sender: Sender | undefined): Promise<boolean> {
+export async function isLive(sender: Sender | undefined, now = Date.now()): Promise<boolean> {
+  if (sender?.host) {
+    const seen = lastSeen.get(sender.session)
+    return seen !== undefined && now - seen < REMOTE_LIVE_MS
+  }
   const pid = sender?.pid
   if (!pid || !Number.isInteger(pid) || pid <= 1) return false
   try {

@@ -2,6 +2,8 @@ import type { TakeApp, TakeLink } from '@shared/protocol.ts'
 
 /** What the wall knows about where an image came from. */
 export type Stamp = {
+  /** The Mac a remote send came from. Absent for a send from this one. */
+  host?: string
   /** What the image shows. The only field a person writes. */
   caption?: string
   zone?: string
