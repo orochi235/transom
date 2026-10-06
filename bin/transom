@@ -315,7 +315,7 @@ apps_json() {
 
 transom_root="${TRANSOM_ROOT:-$HOME/transom}"
 . "$TRANSOM_HOME/libexec/remote.sh"
-if remote_on; then remote_load; fi
+case "$verb" in post|ask|wait) if remote_on; then remote_load; fi ;; esac
 
 # The daemon writes the answer to answers/<the name this gave the file>: the
 # status on the first line, the answer after it.
