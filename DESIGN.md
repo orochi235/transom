@@ -1361,5 +1361,11 @@ the whole path an agent would — including the partial-write guard.
    lights every model itself, so two are in the same room; the meta line reports
    the format and the file size rather than a triangle count. Designed in
    `docs/superpowers/specs/2026-09-20-mesh-artifacts-design.md`.
+10. ~~Remote senders and a bounded disk.~~ **Done.** See *Remote senders* and
+    *Rescue, expiry, and the trash*.
+11. Split the files that grew past a few hundred lines: `server/store.ts`
+    (eviction and the marks bookkeeping can each own a module),
+    `server/index.ts` (the routes into mount functions, as `server/remote.ts`
+    already is) and `bin/transom`.
 
 Steps 1–3 are cheap and answer most of the open questions.
