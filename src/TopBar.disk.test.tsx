@@ -42,6 +42,11 @@ describe('TopBar disk chip', () => {
     expect(html).toContain('20.0 GB')
   })
 
+  it('names every kind of card the wall may not evict', () => {
+    const html = band({ wallBytes: 25 * GB, wallMax: 20 * GB, trashBytes: 0, over: true })
+    expect(html).toContain('Cards the wall may not evict (pinned, eternal zones, open questions, undelivered drawings) hold 25.0 GB')
+  })
+
   it('is absent while under the cap', () => {
     const html = band({ wallBytes: 5 * GB, wallMax: 20 * GB, trashBytes: 0, over: false })
     expect(html).not.toContain('topbar__disk')

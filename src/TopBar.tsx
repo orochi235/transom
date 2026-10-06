@@ -292,7 +292,7 @@ export function TopBar({
           {connected && disk?.over && (
             <span
               className="topbar__disk"
-              title={`Pinned cards and eternal zones hold ${gb(disk.wallBytes)} GB, over the wall's ${gb(disk.wallMax)} GB cap. Nothing more can be evicted.`}
+              title={`Cards the wall may not evict (pinned, eternal zones, open questions, undelivered drawings) hold ${gb(disk.wallBytes)} GB, over the wall's ${gb(disk.wallMax)} GB cap.`}
             >
               disk
             </span>
