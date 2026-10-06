@@ -1,32 +1,15 @@
-enlist: 2
+enlist: 3
+plugin: node
 run: npm run typecheck && npm test
 # No `runner:`: its reporter goes on the end of `run:`, so `run:` must be one
 # command. A package script ending in `vitest run` would carry it.
-setup: npm ci
 
 # The gate is both halves. `npm test` alone passes on a tree that does not
 # compile, because vitest transpiles per file and never checks across them.
 
-# No `use: nvm`. The repo pins no version, and nvm with nothing to read refuses
-# the setup job outright — `nvm on this node has no version for this
-# repository`. The agent's PATH already finds Homebrew's node 26, which is what
-# the suite has run under here.
+# vitest.config.ts aliases both to their source beside this checkout, and
+# package.json names only the published packages.
+with: ../windease ../delamin8r
 
-needs: node_modules
-
-# windease and delamin8r are `file:` deps on sibling trees, so a node needs
-# both checked out beside this one — `npm ci` here links them and cannot create
-# them. Nothing has to be *built* there: vitest and vite both alias these to
-# `../<name>/src/index.ts` and read the source.
-#
-# Their own node_modules is a different matter and is required. That source
-# imports `react`, which resolves through the sibling's own tree, so without it
-# `tsc` fails with "Cannot find module 'react'" from a path outside this repo —
-# which reads like a broken checkout rather than a missing install.
-#
-# On a fresh node, from each of ~/src/windease and ~/src/delamin8r:
-#   onto sync <node> && onto run -in <name> <node> -- npm ci
-needs: node_modules/windease/src/index.ts
-needs: node_modules/delamin8r/src/index.ts
-needs: node_modules/windease/node_modules
-needs: node_modules/delamin8r/node_modules
+# No `.nvmrc`: the repo pins no version, so onto-node leaves the node's own
+# Node on the PATH (Homebrew's node 26 on this fleet).
