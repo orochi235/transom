@@ -223,7 +223,7 @@ describe('a remote wall', () => {
     const { server, env } = await serve([{ id: ID, caption: 'c', zone: 'z', image: '/wall/marks/x.png', text: '' }])
     const got = await claimRemote('s1', env, dir)
     server.close()
-    expect(got[0].image).toBe(path.join(dir, 'marks', `${ID}.png`))
+    expect(got[0].image).toBe(path.join(dir, 'marks', 'remote', `${ID}.png`))
     expect(readFileSync(got[0].image, 'utf8')).toBe('PNG')
   })
 
@@ -237,10 +237,47 @@ describe('a remote wall', () => {
 
   it('forgets session markers and drawings after a day', () => {
     touch('remote-sessions/s1')
-    touch('marks/abc.png')
+    touch('marks/remote/abc.png')
+    touch('marks/own.json')
     pruneRemote(dir, Date.now() + 25 * 3_600_000)
     expect(existsSync(path.join(dir, 'remote-sessions', 's1'))).toBe(false)
-    expect(existsSync(path.join(dir, 'marks', 'abc.png'))).toBe(false)
+    expect(existsSync(path.join(dir, 'marks', 'remote', 'abc.png'))).toBe(false)
+    expect(existsSync(path.join(dir, 'marks', 'own.json'))).toBe(true)
+  })
+
+  it('announces a drawing that will not download by its wall URL, writing nothing', async () => {
+    const id = 'b'.repeat(32)
+    const { server, env } = await serve([{ id, caption: 'c', zone: 'z', image: '/x.png', text: '' }])
+    const got = await claimRemote('s1', env, dir)
+    server.close()
+    expect(got[0].image).toBe(`${env.wall}/api/marks/${id}.png`)
+    expect(existsSync(path.join(dir, 'marks', 'remote', `${id}.png`))).toBe(false)
+  })
+
+  it('returns every claimed drawing when only one fails to download', async () => {
+    const bad = 'b'.repeat(32)
+    const { server, env } = await serve([
+      { id: bad, caption: 'c', zone: 'z', image: '/x.png', text: '' },
+      { id: ID, caption: 'c', zone: 'z', image: '/y.png', text: '' },
+    ])
+    const got = await claimRemote('s1', env, dir)
+    server.close()
+    expect(got.map((c) => c.image)).toEqual([
+      `${env.wall}/api/marks/${bad}.png`,
+      path.join(dir, 'marks', 'remote', `${ID}.png`),
+    ])
+  })
+
+  it('leaves a wall that did not answer alone for 30 seconds', async () => {
+    let hits = 0
+    const server = http.createServer((req) => { hits++; req.socket.destroy() })
+    await new Promise((r) => server.listen(0, r))
+    const env = { wall: `http://127.0.0.1:${server.address().port}`, token: 'tok' }
+    expect(await claimRemote('s1', env, dir)).toEqual([])
+    expect(await claimRemote('s1', env, dir)).toEqual([])
+    server.close()
+    expect(hits).toBe(1)
+    expect(sentRemotely('.wall-down', dir)).toBe(false)
   })
 
   it('keeps recent ones', () => {

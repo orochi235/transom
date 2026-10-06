@@ -158,16 +158,28 @@ export function wallEnv(root = transomRoot()) {
   }
 }
 
+const WALL_DOWN = '.wall-down'
+const WALL_DOWN_MS = 30_000
+
 export function sentRemotely(session, root = transomRoot()) {
   if (typeof session !== 'string' || session === '') return false
-  return existsSync(path.join(root, 'remote-sessions', session.replace(/[^A-Za-z0-9._-]/g, '_')))
+  const name = session.replace(/[^A-Za-z0-9._-]/g, '_')
+  return name !== WALL_DOWN && existsSync(path.join(root, 'remote-sessions', name))
 }
 
 /** Claims from the wall host, and swaps each drawing's path there for a copy
  *  here — the session cannot read the wall host's disk. An id that is not a
- *  plain hash is skipped: it becomes a filename here. */
+ *  plain hash is skipped: it becomes a filename here. A drawing that will not
+ *  download is still returned, pointing at the wall, because the claim already
+ *  marked it delivered. After the wall fails to answer, it is left alone for
+ *  30 seconds so each tool call does not wait out the timeout. */
 export async function claimRemote(session, env, root = transomRoot()) {
+  const down = path.join(root, 'remote-sessions', WALL_DOWN)
+  try {
+    if (Date.now() - statSync(down).mtimeMs < WALL_DOWN_MS) return []
+  } catch { /* no marker */ }
   const headers = { Authorization: `Bearer ${env.token}`, 'X-Transom-Protocol': '1' }
+  let claimed
   try {
     const res = await fetch(`${env.wall}/api/marks/claim`, {
       method: 'POST',
@@ -176,25 +188,40 @@ export async function claimRemote(session, env, root = transomRoot()) {
       signal: AbortSignal.timeout(2000),
     })
     const body = await res.json()
-    const claimed = Array.isArray(body?.claimed) ? body.claimed : []
-    mkdirSync(path.join(root, 'marks'), { recursive: true })
-    const kept = []
-    for (const c of claimed) {
-      if (typeof c?.id !== 'string' || !MARK_ID.test(c.id)) continue
-      const png = await fetch(`${env.wall}/api/marks/${c.id}.png`, { headers, signal: AbortSignal.timeout(5000) })
-      const local = path.join(root, 'marks', `${c.id}.png`)
-      writeFileSync(local, Buffer.from(await png.arrayBuffer()))
-      c.image = local
-      kept.push(c)
-    }
-    return kept
+    claimed = Array.isArray(body?.claimed) ? body.claimed : []
+    rmSync(down, { force: true })
   } catch {
+    try {
+      mkdirSync(path.dirname(down), { recursive: true })
+      writeFileSync(down, '')
+    } catch { /* the marker only saves time */ }
     return []
   }
+  const dir = path.join(root, 'marks', 'remote')
+  const kept = []
+  for (const c of claimed) {
+    if (typeof c?.id !== 'string' || !MARK_ID.test(c.id)) continue
+    const url = `${env.wall}/api/marks/${c.id}.png`
+    try {
+      const png = await fetch(url, { headers, signal: AbortSignal.timeout(5000) })
+      const bytes = Buffer.from(await png.arrayBuffer())
+      if (!png.ok || bytes.length === 0) throw new Error(`HTTP ${png.status}`)
+      mkdirSync(dir, { recursive: true })
+      const local = path.join(dir, `${c.id}.png`)
+      writeFileSync(local, bytes)
+      c.image = local
+    } catch {
+      c.image = url
+    }
+    kept.push(c)
+  }
+  return kept
 }
 
+/** Forgets only what this hook wrote; the local daemon's own marks/ records
+ *  are its to keep. */
 export function pruneRemote(root = transomRoot(), now = Date.now()) {
-  for (const dir of ['remote-sessions', 'marks']) {
+  for (const dir of ['remote-sessions', path.join('marks', 'remote')]) {
     let names = []
     try { names = readdirSync(path.join(root, dir)) } catch { continue }
     for (const n of names) {
