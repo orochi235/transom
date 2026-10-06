@@ -30,8 +30,18 @@ export type Sender = { session: string; pid?: number; host?: string }
 export const REMOTE_LIVE_MS = 120_000
 const lastSeen = new Map<string, number>()
 
+export const REMOTE_SESSIONS_MAX = 1024
+const SESSION_ID_MAX = 128
+
 export function sawSession(session: string, now = Date.now()) {
+  if (session.length > SESSION_ID_MAX) return
+  for (const [id, seen] of lastSeen) if (now - seen >= REMOTE_LIVE_MS) lastSeen.delete(id)
+  lastSeen.delete(session)
   lastSeen.set(session, now)
+  for (const id of lastSeen.keys()) {
+    if (lastSeen.size <= REMOTE_SESSIONS_MAX) break
+    lastSeen.delete(id)
+  }
 }
 
 export type MarkRecord = {
