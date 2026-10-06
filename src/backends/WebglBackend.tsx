@@ -83,7 +83,7 @@ import {
   zoneOf,
 } from '@/view-state.ts'
 import { rampAt, rampOf, rampTo } from '@/ramp.ts'
-import type { WallItem, ZoneSettings } from '@shared/protocol.ts'
+import type { Disk, WallItem, ZoneSettings } from '@shared/protocol.ts'
 
 type Props = {
   items: WallItem[]
@@ -111,6 +111,7 @@ type Props = {
    *  daemon does not reload, so this is the only sign a feature is missing
    *  because the process predates it rather than because it is broken. */
   stale: boolean
+  disk: Disk | null
   /** What the band is set to, restored from the last visit. Held above this
    *  backend because the arrangement is one of its fields and the cycle keys
    *  live up there. */
@@ -2533,6 +2534,7 @@ export function WebglBackend(props: Props) {
           onList={toggleList}
           connected={props.connected}
           stale={props.stale}
+          disk={props.disk}
           look={props.params.band}
           allowParallax={props.params.general.parallax}
           plan={

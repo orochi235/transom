@@ -124,6 +124,11 @@
   cursor: help;
 }
 
+.topbar__disk {
+  color: var(--warn, var(--danger));
+  cursor: help;
+}
+
 .topbar__bucket {
   background: color-mix(in srgb, var(--muted) 12%, transparent);
   border: 1px solid var(--band-line);

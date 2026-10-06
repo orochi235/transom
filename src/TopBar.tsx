@@ -6,11 +6,13 @@ import { ago } from '@/age.ts'
 import { BUCKETS, bucketRange, filterFrom, histogram, resolve, spanOf, type Filter } from '@/nav/time-filter.ts'
 import { kindTally, type KindKey } from '@/nav/kind-filter.ts'
 import { SORTS, type SortKey } from '@/nav/sort.ts'
-import type { WallItem } from '@shared/protocol.ts'
+import type { Disk, WallItem } from '@shared/protocol.ts'
 import type { StackParams } from '@/params.ts'
 import './topbar.css'
 
 const BINS = 64
+
+const gb = (bytes: number) => (bytes / 1024 ** 3).toFixed(1)
 
 /**
  * The wall's filters. A band rather than a toolbar: each section is a block
@@ -33,6 +35,7 @@ export function TopBar({
   offWall = 0,
   connected,
   stale,
+  disk,
   plan,
   axes,
   look,
@@ -66,6 +69,8 @@ export function TopBar({
   /** The daemon is running other code than this wall. Said out loud because
    *  every symptom of it looks like a broken feature instead. */
   stale: boolean
+  /** What the wall holds on disk against its cap; null until the daemon says. */
+  disk: Disk | null
   /** The wall's plan view and its axis gizmo. Passed in rather than built
    *  here: both read the live camera, which the band has no other reason to
    *  know about. */
@@ -282,6 +287,14 @@ export function TopBar({
           {connected && stale && (
             <span className="topbar__stale" title="The daemon is running a different build. Run npm run daemon:restart.">
               daemon stale
+            </span>
+          )}
+          {connected && disk?.over && (
+            <span
+              className="topbar__disk"
+              title={`Pinned cards and eternal zones hold ${gb(disk.wallBytes)} GB, over the wall's ${gb(disk.wallMax)} GB cap. Nothing more can be evicted.`}
+            >
+              disk
             </span>
           )}
         </div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ALERTS } from '@shared/attention.ts'
-import type { Alert, WallItem, ZoneSettings } from '@shared/protocol.ts'
+import type { Alert, Disk, WallItem, ZoneSettings } from '@shared/protocol.ts'
 import { agree, type Build } from '@shared/build.ts'
 import { actions, type ZonePatch } from '@/actions.ts'
 import { subscribe } from '@/transport.ts'
@@ -30,6 +30,8 @@ export type Wall = {
    *  both have been heard from, and always in demo mode, where there is no
    *  daemon at all. */
   daemonStale: boolean
+  /** What the wall holds on disk against its cap. Null until the daemon has said. */
+  disk: Disk | null
   /** The last arrival whose level asks to be opened on sight. Held rather than
    *  fired so a wall that was closed does not open a queue of them at once —
    *  only the newest is still worth looking at. */
@@ -56,6 +58,7 @@ export function useWall(): Wall {
   const [ttlMs, setTtlMs] = useState(300_000)
   const [connected, setConnected] = useState(false)
   const [daemonBuild, setDaemonBuild] = useState<Build | null>(null)
+  const [disk, setDisk] = useState<Disk | null>(null)
   const [daemonCode, setDaemonCode] = useState<Build | null>(null)
   const [announce, setAnnounce] = useState<WallItem | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
@@ -97,6 +100,9 @@ export function useWall(): Wall {
             setPinnedZones(msg.pinnedZones ?? {})
             holdZoneSettings(msg.zoneSettings ?? {})
             setDaemonBuild(msg.build ?? null)
+            setDisk(msg.disk ?? null)
+          } else if (msg.type === 'disk') {
+            setDisk(msg.disk)
           } else if (msg.type === 'ttl') {
             setTtlMs(msg.ttlMs)
           } else if (msg.type === 'zoneColors') {
@@ -205,6 +211,7 @@ export function useWall(): Wall {
     setTtlMs: postTtl,
     clockOffset: clockOffset.current,
     connected,
+    disk,
     daemonStale: daemonBuild !== null && daemonCode !== null && !agree(daemonBuild, daemonCode),
     announce,
     alerts,
