@@ -1,5 +1,6 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { parseBytes } from './bytes.ts'
 import { parseDuration } from '../shared/duration.ts'
 import { CLIENT_PORT, DAEMON_PORT } from './ports.ts'
 
@@ -18,7 +19,18 @@ export const config = {
   marks: join(root, 'marks'),
   port: DAEMON_PORT,
   ttlMs: parseDuration(process.env.TRANSOM_TTL ?? '8h') ?? 28_800_000,
-  trashMs: 24 * 60 * 60 * 1000,
+  trashMs: parseDuration(process.env.TRANSOM_TRASH_TTL ?? '24h') ?? 86_400_000,
+  trashMaxBytes: parseBytes(process.env.TRANSOM_TRASH_MAX, 10 * 1024 ** 3),
+  /** The inbox and the thumbnail cache together: what the wall is holding. */
+  wallMaxBytes: parseBytes(process.env.TRANSOM_WALL_MAX, 20 * 1024 ** 3),
+  logMaxBytes: parseBytes(process.env.TRANSOM_LOG_MAX, 25 * 1024 ** 2),
+  uploadMaxBytes: 2 * 1024 ** 3,
+  /** An answer nobody collected, and a partial upload, are both abandoned by now. */
+  answersMs: 86_400_000,
+  incomingMs: 3_600_000,
+  reapMs: 10 * 60_000,
+  incoming: join(root, '.incoming'),
+  logs: join(homedir(), '.local', 'state', 'transom'),
   maxEdge: 1024,
   /** Files ingested at once. Each one decodes, resizes, encodes a webp and
    *  re-encodes a full-resolution PNG, so this is the daemon's memory ceiling

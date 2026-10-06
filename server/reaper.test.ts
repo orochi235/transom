@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { mkdtemp, mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises'
 import { existsSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -82,5 +82,24 @@ describe('rotateLog', () => {
     expect(await rotateLog(log, 100)).toBe(false)
     expect(await rotateLog(join(dir, 'none.log'), 100)).toBe(false)
     expect(existsSync(`${log}.1`)).toBe(false)
+  })
+})
+
+describe('a stuck entry', () => {
+  it('does not stop the sweep behind it', async () => {
+    const stuck = join(dir, 'a-stuck')
+    await mkdir(stuck)
+    await writeFile(join(stuck, 'f'), 'x')
+    await chmod(stuck, 0o500)
+    const now = Date.now()
+    await file('b-old', 1, now - 3 * 3_600_000)
+    try {
+      const gone = await pruneByAge(dir, 0, now + 1000)
+      expect(existsSync(join(dir, 'b-old'))).toBe(false)
+      expect(existsSync(join(stuck, 'f'))).toBe(true)
+      expect(gone).toBe(1)
+    } finally {
+      await chmod(stuck, 0o700)
+    }
   })
 })

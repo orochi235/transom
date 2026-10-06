@@ -17,6 +17,17 @@ export async function bytesOf(path: string): Promise<number> {
   return total
 }
 
+/** One stuck entry (EBUSY, EPERM) must not stop the sweep behind it. */
+export async function tryRm(path: string): Promise<boolean> {
+  try {
+    await rm(path, { recursive: true, force: true })
+    return true
+  } catch (err) {
+    console.error('[reap] could not delete', path, (err as NodeJS.ErrnoException).code)
+    return false
+  }
+}
+
 type Held = { path: string; at: number; mtime: number; bytes: number }
 
 async function entries(dir: string, keep?: (name: string) => boolean): Promise<Held[]> {
@@ -42,8 +53,7 @@ export async function pruneByAge(
   let gone = 0
   for (const e of await entries(dir, keep)) {
     if (e.at >= now - maxAgeMs) continue
-    await rm(e.path, { recursive: true, force: true })
-    gone++
+    if (await tryRm(e.path)) gone++
   }
   return gone
 }
@@ -56,7 +66,7 @@ export async function pruneToSize(dir: string, maxBytes: number): Promise<number
   let gone = 0
   for (const e of all) {
     if (total <= maxBytes) break
-    await rm(e.path, { recursive: true, force: true })
+    if (!(await tryRm(e.path))) continue
     total -= e.bytes
     gone++
   }

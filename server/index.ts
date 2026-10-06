@@ -8,6 +8,7 @@ import { config } from './config.ts'
 import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
+import { startReaper } from './disk.ts'
 import { groupBadge } from '@shared/groups.ts'
 import { mountMeshView } from './meshview.ts'
 import { watchZoneColors } from './zoneColors.ts'
@@ -24,7 +25,7 @@ import { idFromOrig } from './itemId.ts'
 import { zipName, zipPlanForGroup, zipPlanForZone } from '@shared/zipPlan.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import type { Lifetime } from '@shared/lifetime.ts'
-import { BEAT_MS, type ServerMessage } from '@shared/protocol.ts'
+import { BEAT_MS, type Disk, type ServerMessage } from '@shared/protocol.ts'
 
 await settings.load()
 await zones.load()
@@ -46,6 +47,8 @@ function broadcast(msg: ServerMessage) {
 
 setInterval(() => broadcast({ type: 'beat' }), BEAT_MS).unref()
 
+let disk: Disk | null = null
+
 wss.on('connection', (ws) => {
   clients.add(ws)
   ws.on('close', () => clients.delete(ws))
@@ -58,6 +61,7 @@ wss.on('connection', (ws) => {
     pinnedZones,
     zoneSettings: zones.all(),
     build,
+    disk,
   }
   ws.send(JSON.stringify(hello))
 })
@@ -404,6 +408,7 @@ app.get('/api/health', (_req, res) => {
     ttlMs: settings.ttlMs(),
     inbox: config.inbox,
     trash: config.trash,
+    disk,
   })
 })
 
@@ -428,7 +433,7 @@ store.startSweeper()
 setInterval(() => {
   void store.recheckSenders().then((news) => news.forEach(announceMarks))
 }, 15_000).unref()
-watchInbox((landed) => {
+const inbox = watchInbox((landed) => {
   const { item } = landed
   if (landed.as === 'take' && !landed.opened) {
     console.log(`[take] ${item.zone}/${item.id.slice(0, 8)} ${groupBadge(item)}`)
@@ -447,6 +452,10 @@ watchInbox((landed) => {
   if (toast) broadcast({ type: 'alert', alert: toast })
   if (plan.sound || plan.notify || plan.raise !== 'none')
     console.log(`[alert] ${item.attention?.level} ${JSON.stringify(plan)}`)
+})
+startReaper(inbox.ready, (d) => {
+  disk = d
+  broadcast({ type: 'disk', disk: d })
 })
 
 let reportedListenError = false

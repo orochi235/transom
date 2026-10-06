@@ -1,0 +1,58 @@
+import { lstat, readdir } from 'node:fs/promises'
+import { basename, extname, join } from 'node:path'
+import type { Disk } from '@shared/protocol.ts'
+import { bytesOf, pruneByAge, pruneToSize, rotateLog, touchedAt, tryRm } from './reaper.ts'
+
+export type ReapDeps = {
+  dirs: { inbox: string; cache: string; trash: string; answers: string; marks: string; incoming: string; logs: string }
+  limits: {
+    trashMs: number; trashMaxBytes: number; wallMaxBytes: number
+    logMaxBytes: number; answersMs: number; incomingMs: number
+  }
+  inUse: () => { ids: Set<string>; caches: Set<string> }
+  evictable: () => { id: string; bornAt: number; paths: string[] }[]
+  evict: (id: string) => Promise<boolean>
+}
+
+/** One pass over everything the wall writes. Order matters: eviction moves
+ *  cards into the trash, so the trash is bounded after it. */
+export async function reap(d: ReapDeps, now = Date.now()): Promise<Disk> {
+  const { dirs, limits } = d
+
+  const { ids, caches } = d.inUse()
+  for (const name of await readdir(dirs.cache).catch(() => [] as string[])) {
+    const path = join(dirs.cache, name)
+    if (caches.has(path)) continue
+    // Ingest writes the thumbnail before the store holds the card.
+    const st = await lstat(path).catch(() => null)
+    if (st && touchedAt(st) < now - limits.incomingMs) await tryRm(path)
+  }
+
+  let wallBytes = (await bytesOf(dirs.inbox)) + (await bytesOf(dirs.cache))
+  for (const card of d.evictable()) {
+    if (wallBytes <= limits.wallMaxBytes) break
+    let bytes = 0
+    for (const p of card.paths) bytes += await bytesOf(p)
+    if (await d.evict(card.id)) wallBytes -= bytes
+  }
+
+  await pruneByAge(dirs.trash, limits.trashMs, now)
+  await pruneToSize(dirs.trash, limits.trashMaxBytes)
+  await pruneByAge(dirs.answers, limits.answersMs, now)
+  await pruneByAge(dirs.incoming, limits.incomingMs, now)
+  // A record and its composite share the artifact id; `waiting/` is the hook's flags.
+  await pruneByAge(dirs.marks, limits.trashMs, now, (name) =>
+    name === 'waiting' || ids.has(basename(name, extname(name))),
+  )
+
+  for (const name of await readdir(dirs.logs).catch(() => [] as string[])) {
+    if (name.endsWith('.log')) await rotateLog(join(dirs.logs, name), limits.logMaxBytes)
+  }
+
+  return {
+    wallBytes,
+    wallMax: limits.wallMaxBytes,
+    trashBytes: await bytesOf(dirs.trash),
+    over: wallBytes > limits.wallMaxBytes,
+  }
+}

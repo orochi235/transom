@@ -161,6 +161,7 @@ export function createDemoDaemon() {
       // `agree` reads an unknown on either side as no claim rather than a
       // mismatch.
       build: UNKNOWN,
+      disk: null,
     })
     sink.connected(true)
 

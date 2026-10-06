@@ -197,6 +197,10 @@ export type ZoneSettings = {
   lifetime?: Lifetime
 }
 
+/** What the wall holds on disk, from the reaper's last pass. `over` means the
+ *  cards it may not evict alone exceed the cap. */
+export type Disk = { wallBytes: number; wallMax: number; trashBytes: number; over: boolean }
+
 export type ServerMessage =
   | {
       type: 'snapshot'
@@ -215,8 +219,11 @@ export type ServerMessage =
        *  says so when they disagree — the daemon is a LaunchAgent and does not
        *  reload, so it can serve yesterday's build with no sign at all. */
       build: Build
+      /** The reaper's last pass, or null before its first. */
+      disk: Disk | null
     }
   | { type: 'zoneColors'; zoneColors: Record<string, string> }
+  | { type: 'disk'; disk: Disk }
   /** One zone's overrides, as someone just set them. An empty object means the
    *  zone went back to inheriting everything. */
   | { type: 'zoneSettings'; zone: string; settings: ZoneSettings }

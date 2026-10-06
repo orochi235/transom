@@ -327,5 +327,6 @@ export function watchInbox(onLand: (landed: Landed) => void) {
       stopSweep()
       await watcher.close()
     },
+    ready: watcher.ready,
   }
 }
