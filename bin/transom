@@ -79,6 +79,7 @@ verb=${1:-help}
 [ $# -gt 0 ] && shift
 case "$verb" in
   post|ask|wait|zone) ;;
+  protocol) echo 1; exit 0 ;;
   install|up|down|cycle|stat|wire)
     if [ "$verb" = wire ]; then exec node "$TRANSOM_HOME/libexec/wire.mjs" "$@"; fi
     exec sh "$TRANSOM_HOME/libexec/agents" "$verb" "$@"
@@ -255,9 +256,13 @@ ext_of() {
 # Beside the image and before it: the daemon triggers on the image arriving, so
 # a sidecar written afterwards is a race it would lose.
 write_sidecar() {
+  [ -z "$2" ] && [ -z "$sha" ] && [ -z "$session" ] && [ -z "$attention" ] && [ -z "$note" ] && [ -z "$sandbox" ] && [ -z "$question" ] && [ -z "$group" ] && [ -z "$apps" ] && [ -z "$links" ] && [ -z "$quiet" ] && return 0
+  sidecar_json "$@" > "$1.transom.json"
+}
+
+sidecar_json() {
   dest_image=$1
   dest_caption=$2
-  [ -z "$dest_caption" ] && [ -z "$sha" ] && [ -z "$session" ] && [ -z "$attention" ] && [ -z "$note" ] && [ -z "$sandbox" ] && [ -z "$question" ] && [ -z "$group" ] && [ -z "$apps" ] && [ -z "$links" ] && [ -z "$quiet" ] && return 0
   {
     printf '{"repo":"%s"' "$(json_escape "$repo")"
     [ -n "$sha" ] && printf ',"sha":"%s"' "$(json_escape "$sha")"
@@ -276,8 +281,13 @@ write_sidecar() {
     [ -n "$apps" ] && printf ',"apps":[%s]' "$(apps_json "$dest_image")"
     [ -n "$links" ] && printf ',"links":[%s]' "$links"
     [ -n "$quiet" ] && printf ',"quiet":true'
+    if remote_on; then
+      printf ',"host":"%s"' "$(json_escape "$(scutil --get LocalHostName 2>/dev/null || hostname -s)")"
+      printf ',"zoneRoot":"%s"' "$(json_escape "$root")"
+      if [ -f "$root/.hued" ]; then printf ',"hued":"%s"' "$(json_escape "$(cat "$root/.hued")")"; fi
+    fi
     printf '}\n'
-  } > "$dest_image.transom.json"
+  }
 }
 
 # `Name` hands the app the artifact itself, which is the copy in the inbox and
@@ -291,6 +301,12 @@ apps_json() {
       *=*) name=${entry%%=*}; file=$(abs_path "${entry#*=}") ;;
       *) name=$entry; file=$own ;;
     esac
+    if remote_on; then
+      case "$entry" in
+        *=*) echo "transom $verb: --app $name names a file on this host, so the wall cannot open it" >&2; continue ;;
+        *) file=@self ;;
+      esac
+    fi
     [ $first -eq 1 ] || printf ','
     first=0
     printf '{"name":"%s","path":"%s"}' "$(json_escape "$name")" "$(json_escape "$file")"
@@ -298,11 +314,14 @@ apps_json() {
 }
 
 transom_root="${TRANSOM_ROOT:-$HOME/transom}"
+. "$TRANSOM_HOME/libexec/remote.sh"
+if remote_on; then remote_load; fi
 
 # The daemon writes the answer to answers/<the name this gave the file>: the
 # status on the first line, the answer after it.
 await_answer() {
   answer="$transom_root/answers/$(basename "$1")"
+  if remote_on; then remote_await "$(basename "$1")" "$answer"; fi
   while [ ! -f "$answer" ]; do sleep 1; done
   # Three parts: the status, the chip, then the free text. A blank second line
   # is what tells a free-text answer's first line apart from a choice. A
@@ -354,21 +373,37 @@ fi
 # hangs without saying what it is waiting for.
 if [ $# -eq 0 ] && [ -t 0 ]; then fail "no file, and nothing piped in"; fi
 dir="$transom_root/inbox/$zone"
-mkdir -p "$dir"
 
-# Where this zone's renders come from, so the daemon can find the project's
-# `.hued` and color the zone. One file per zone, rewritten on every send: a
-# shared registry would be a read-modify-write that two concurrent sends lose.
-zones_dir="$transom_root/zones"
-mkdir -p "$zones_dir"
-tmp="$zones_dir/.$zone.$$"
-printf '{"root":"%s"}\n' "$(json_escape "$root")" > "$tmp" && mv "$tmp" "$zones_dir/$zone.json"
+# The session marker the hook reads to know this session's sends live on
+# another host.
+remote_sent() {
+  [ -n "$session" ] || return 0
+  mkdir -p "$transom_root/remote-sessions"
+  : > "$transom_root/remote-sessions/$(printf '%s' "$session" | tr -c 'A-Za-z0-9._-' '_')"
+}
+
+if ! remote_on; then
+  mkdir -p "$dir"
+  # Where this zone's renders come from, so the daemon can find the project's
+  # `.hued` and color the zone. One file per zone, rewritten on every send: a
+  # shared registry would be a read-modify-write that two concurrent sends lose.
+  zones_dir="$transom_root/zones"
+  mkdir -p "$zones_dir"
+  tmp="$zones_dir/.$zone.$$"
+  printf '{"root":"%s"}\n' "$(json_escape "$root")" > "$tmp" && mv "$tmp" "$zones_dir/$zone.json"
+fi
 
 if [ $# -eq 0 ]; then
-  dest="$dir/$(uuidgen)$suffix.png"
-  write_sidecar "$dest" "$caption"
-  cat > "$dest"
-  echo "$dest"
+  if remote_on; then
+    dest=$(remote_send - "$suffix.png" "$zone" "$(sidecar_json - "$caption")")
+    echo "$dest"
+    remote_sent
+  else
+    dest="$dir/$(uuidgen)$suffix.png"
+    write_sidecar "$dest" "$caption"
+    cat > "$dest"
+    echo "$dest"
+  fi
   [ -n "$question" ] && [ -z "$no_wait" ] && await_answer "$dest"
   exit 0
 fi
@@ -389,7 +424,7 @@ for f in "$@"; do
   esac
   case " $video_ext " in
     *" $ext "*)
-      command -v ffmpeg >/dev/null 2>&1 ||
+      remote_on || command -v ffmpeg >/dev/null 2>&1 ||
         fail ".$ext needs ffmpeg for the poster frame ($f). brew install ffmpeg" ;;
   esac
 done
@@ -404,9 +439,15 @@ for f in "$@"; do
   else
     own=$(basename "$f"); own="${own%.*}"
   fi
-  write_sidecar "$dest" "$own"
-  cp "$f" "$dest"
-  echo "$dest"
+  if remote_on; then
+    dest=$(remote_send "$f" "$suffix.$ext" "$zone" "$(sidecar_json "$f" "$own")")
+    echo "$dest"
+    remote_sent
+  else
+    write_sidecar "$dest" "$own"
+    cp "$f" "$dest"
+    echo "$dest"
+  fi
   # An if, not `[ -n ... ] &&`: as the loop's last command, a false test would
   # be the script's exit status, and every send without a question reported failure.
   if [ -n "$question" ] && [ -z "$no_wait" ]; then await_answer "$dest"; fi
