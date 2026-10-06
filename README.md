@@ -74,6 +74,20 @@ path by default; call it as `~/src/transom/bin/transom` or link it.
 Run the public demo locally with `VITE_TRANSOM_DEMO=1 npm run dev:client`, and
 build the whole site with `npm run site`.
 
+### Sending from another Mac
+
+On the Mac the wall runs on:
+
+```
+transom pair studio                           # --head installs the tap's HEAD
+transom pair --off studio                     # stops it; leaves the install
+```
+
+That installs transom on `studio` over ssh, wires its Claude Code agents, and
+gives it this wall's address and token in `~/transom/wall.env`. Renders sent
+there land here, and drawings made on them go back to the session that sent
+them.
+
 ## How it is put together
 
 A Node daemon watches `~/transom/inbox/` with the OS's own recursive watcher,

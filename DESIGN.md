@@ -1011,6 +1011,83 @@ that level is for.
 An alert is a detached `spawn` whose failure is swallowed. A missing `afplay`
 costs the sound, never the arrival.
 
+## Remote senders
+
+A **node** is another Mac on the LAN, such as an onto fleet machine, whose
+agents send renders to the wall running on this one. The wall's Mac has Remote
+Login off, so nothing can ssh to it, but it can ssh out to every node. So the
+install runs from the wall's Mac over ssh, and renders travel over HTTP to the
+daemon on `*:8787`.
+
+**`transom pair studio` sets a node up.** Run on the wall's Mac, it installs
+the tap's release on `studio` with Homebrew (`--head` for the tap's HEAD),
+refuses if that build cannot send remotely (`transom protocol` does not print
+`1`), runs `transom wire` there, writes `~/transom/wall.env`, and has the node
+call `GET /api/whoami` to prove it can reach the wall with the token. It is
+safe to run again. `transom pair --off studio` deletes `wall.env` and leaves
+the install.
+
+**A node is in remote mode while `~/transom/wall.env` exists.** The file is
+mode 600:
+
+```
+TRANSOM_WALL=http://<wall>.local:8787
+TRANSOM_TOKEN=<the wall's ~/transom/token>
+```
+
+Only `post`, `ask` and `wait` read it. They behave as they do locally and
+print the inbox path on the wall's Mac. Nothing is queued on the node:
+
+| Failure | Exit | Message |
+|---|---|---|
+| Cannot resolve, connect, or no answer within 3s | 6 | `the wall at <url> is not answering` |
+| The wall answered with an error | 1 | `the wall refused this (HTTP <code>): <body>` |
+| Anything else | 1 | curl's error and the HTTP code |
+
+The token never appears in a process's arguments: curl reads its headers from a
+mode-600 file removed on exit, on the node and in `pair`'s own check.
+
+### The routes
+
+| Route | Does |
+|---|---|
+| `POST /api/inbox/:zone` | Streams the body into `~/transom/.incoming/`, writes the sidecar into the inbox, then renames the file in — the order ingest expects. The sidecar is base64 JSON in `X-Transom-Sidecar`, at most 12000 bytes encoded; the name's suffix (`.ttl…` and the extension) is `X-Transom-Name`. Returns `{ path }`. Over 2 GB is 413; a video when the wall has no ffmpeg is 422. |
+| `GET /api/answers/:name?wait=30` | Returns the answer and deletes it, or 204 once `wait` runs out. `wait` is held to 0–60 seconds. The CLI asks again until it gets one, and keeps waiting through a wall that has gone away. |
+| `POST /api/marks/claim` | What the node's hook calls to collect drawings. |
+| `GET /api/whoami` | The wall's hostname, for `pair` to check the install. |
+
+**Every route above needs the token from any address but loopback.** The daemon writes a
+random token to `~/transom/token` (mode 600) the first time it starts. A
+request without it gets 401 and `this wall wants its token`. The page server on
+`:7750` proxies `/api` and adds `X-Forwarded-For`, so a request arriving on
+loopback is judged by the last address in that header: a LAN request through
+the page server needs the token too. To change the token, delete the file,
+restart the daemon, and pair each node again.
+
+`GET /api/marks/<id>.png` stays open: the wall page loads drawings from it, and
+it shows nothing `/img` and `/orig` do not.
+
+**Remote requests carry `X-Transom-Protocol: 1`.** A different number gets 426
+and `Run brew upgrade transom on the sending host`, so an old node fails loudly
+instead of losing sidecar fields without a word.
+
+### What changes across hosts
+
+| On one Mac | From a node |
+|---|---|
+| `zones/<zone>.json` holds the repo's path, and the zone's color comes from that repo's `.hued`. | The sidecar carries the `.hued` text as `hued`, and the zone record keeps it. |
+| A sender counts as running while its pid is a live claude process. | The sidecar carries `host`. The sender counts as running if its session called `marks/claim` in the last 2 minutes. The daemon remembers at most 1024 such sessions. |
+| The hook claims drawings when `marks/waiting/<session>` exists. | A send writes `~/transom/remote-sessions/<session>`. While it exists, the hook claims from `TRANSOM_WALL` on each tool call (2s timeout) and downloads each drawing into `~/transom/marks/remote/`. One that will not download is handed to the session as its URL on the wall. After a failed claim the hook waits 30 seconds before trying again. It deletes its markers and drawings after 24 hours. |
+| `--app Name=path` opens another file. | Dropped with a warning, by the CLI and again by the daemon: a node's path means nothing on the wall's Mac. A bare `--app Name` still opens the sent file there. |
+| The CLI refuses a video when it has no ffmpeg. | The daemon checks instead and returns 422. |
+| Any zone name. | Letters, digits, `.`, `_` and `-` only. |
+
+**Known limits.** After the wall's daemon restarts, the wall treats a node's
+session as ended until its next tool call. An answer is handed
+over once: if the connection drops after the wall deleted it, `ask` waits
+forever. Anyone holding the token can overwrite `zones/<zone>.json` for any
+zone, which changes only its color.
+
 ## Rescue, expiry, and the trash
 
 **How long an artifact lives is the daemon's, and the `wall` page of the prefs
@@ -1026,11 +1103,11 @@ a rescued one, ignore it.
 sheet offers the same durations plus `indefinite` and `eternal`, both of which
 resolve to an infinite lifetime at the sweeper's one comparison, so neither
 needs a case of its own. They differ in nothing today and in everything later:
-**indefinite is off the clock and ordinary otherwise**, so whatever collector
-the wall grows takes it like anything else, while **eternal is exempt from all
-of that** — the zone-wide form of a rescue. The one place that already
-separates them is bulk expiry, which passes over an eternal zone; the card's
-own Expire is a deliberate act on one artifact and still lands.
+**indefinite is off the clock and ordinary otherwise**, so the reaper's disk
+cap takes it like anything else, while **eternal is exempt from all of that** —
+the zone-wide form of a rescue. Bulk expiry and the reaper pass over an eternal
+zone; the card's own Expire is a deliberate act on one artifact and still
+lands.
 
 A zone's lifetime is written to `zones.json` the way a person would — `8h`, or
 the hold's own word — and a record this build cannot read leaves the zone
@@ -1043,14 +1120,35 @@ something when the set is full means choosing what it displaces. Without a bound
 "permanence earned by attention" collapses into one click and forever, and one
 click is not attention — you get the sediment folder back with extra steps.
 
-**Expiry moves to a holding trash — which is never emptied.** The real loss
+**Expiry moves a card to a holding trash, kept for 24 hours.** The real loss
 mode is being heads-down for 40 minutes, not glancing up as something dies; a
-10-minute trash catches almost none of those and only feels like a safety net,
-so 24 hours is the intended figure. `config.trashMs` holds it and **nothing
-reads it**: the trash grows without bound, and the wall has no collector of any
-kind — no count cap, no disk budget, nothing that empties `trash/`. That is the
-gap `indefinite` is named against, and until it is closed the word promises
-something no code delivers.
+10-minute trash catches almost none of those and only feels like a safety net.
+
+**The reaper bounds everything the daemon writes.** It runs once the inbox
+present at startup has been taken in — before that the store is empty and
+every thumbnail would look orphaned — and then every 10 minutes. Each limit
+with a variable can be set in the daemon's environment.
+
+| What | Rule | Variable |
+|---|---|---|
+| `inbox/` and `.cache` together | Over 20 GB, expire the oldest cards through normal expiry, so they go to the trash and the wall animates them away. Pinned cards, open questions, cards with undelivered drawings and eternal zones are never taken; `indefinite` ones are. Each card is checked again just before it goes. | `TRANSOM_WALL_MAX` |
+| `trash/` | Delete what has been there longer than 24 hours, then the oldest until it is under 10 GB. | `TRANSOM_TRASH_TTL`, `TRANSOM_TRASH_MAX` |
+| `.cache` | Delete a thumbnail or poster no card uses, once it is an hour old: ingest writes it before the store holds the card. | — |
+| `answers/` | Delete an answer no CLI collected within 24 hours. | — |
+| `.incoming/` | Delete a remote upload cut off partway, after an hour. | — |
+| `marks/` | Delete records and drawings for cards no longer on the wall, after the trash's 24 hours. | — |
+| `~/.local/state/transom/*.log` | Over 25 MB, copy to `<name>.1` and truncate in place. | `TRANSOM_LOG_MAX` |
+
+**Age is the later of a file's mtime and ctime.** Moving a card into the trash
+keeps its mtime and bumps its ctime, so mtime alone would age it by when it was
+rendered rather than when it was thrown away. Truncating a log in place is safe
+only because launchd opens it with `O_APPEND`; a writer without that keeps its
+offset and leaves a sparse file.
+
+A file that will not delete is logged as `[reap] could not delete` and
+skipped, so one stuck file never stops a pass. When the cards it may not take
+hold more than the cap on their own, nothing more can be evicted: `/api/health`
+reports the sizes, and the band shows a `disk` chip until it fits.
 
 **The last ten expiries a person asked for are undoable with a keystroke** —
 Delete in the lightbox, the menu's expiries — never a TTL running out, which
@@ -1185,10 +1283,10 @@ Base64-over-WebSocket hitches every time a render lands.
   goes back to ordinary. A thread would let the agent follow up on the same
   card, and needs a history in the lightbox and a way to mark it resolved. Worth
   it only if follow-ups keep arriving as new cards.
-- **The daemon answers the whole LAN, unauthenticated.** It listens on
-  `*:8787`, and every endpoint takes requests from any host, including
-  `POST /api/items/:id/open`, which runs `open -a` on the wall host. The
-  remote-senders design puts only its own endpoints behind a token. Whether
+- **Most of `/api` still answers the whole LAN without the token.** Sending,
+  answers, `whoami` and `POST /api/marks/claim` need it (*Remote senders*).
+  Everything else takes requests from any host, including
+  `POST /api/items/:id/open`, which runs `open -a` on the wall host. Whether
   the rest follow, with the wall page exempt by loopback, is undecided.
 - **Multi-monitor.** Does a zone ever span displays, or is one board one screen?
 - **Where unsent marks go when their session has gone — TODO, deliberately
