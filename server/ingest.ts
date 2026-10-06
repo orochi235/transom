@@ -264,6 +264,9 @@ export function watchInbox(onLand: (landed: Landed) => void) {
   const declined = new Set<string>()
   const held = (p: string) => store.has(p) || inFlight.has(p) || declined.has(p)
 
+  // Adoptions queued behind the gate before the watcher is ready: `ready`
+  // waits on them, so the reaper never sees a store missing queued cards.
+  const adoptions: Promise<void>[] = []
   const take = (sourcePath: string, adopting: boolean) => {
     // Several paths reach the same artifact on purpose: the watch, the
     // adopting scan, the sweep, and the events ingest's own stamp rewrite
@@ -273,7 +276,7 @@ export function watchInbox(onLand: (landed: Landed) => void) {
     // Read at arrival rather than when the turn comes: a file waiting behind
     // others must not be dated when it finally runs.
     const at = Date.now()
-    void gate(async () => {
+    const done = gate(async () => {
       try {
         const landed = adopting ? await adopt(sourcePath) : await ingest(sourcePath, at)
         if (landed) onLand(landed)
@@ -282,6 +285,7 @@ export function watchInbox(onLand: (landed: Landed) => void) {
         inFlight.delete(sourcePath)
       }
     })
+    if (adopting) adoptions.push(done)
   }
 
   // Ignored silently, an unheld file is invisible twice over: never on the
@@ -327,6 +331,8 @@ export function watchInbox(onLand: (landed: Landed) => void) {
       stopSweep()
       await watcher.close()
     },
-    ready: watcher.ready,
+    ready: watcher.ready.then(async () => {
+      await Promise.allSettled(adoptions)
+    }),
   }
 }

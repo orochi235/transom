@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { chmod, mkdtemp, mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises'
 import { existsSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -91,6 +91,7 @@ describe('a stuck entry', () => {
     await mkdir(stuck)
     await writeFile(join(stuck, 'f'), 'x')
     await chmod(stuck, 0o500)
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const now = Date.now()
     await file('b-old', 1, now - 3 * 3_600_000)
     try {
@@ -98,7 +99,9 @@ describe('a stuck entry', () => {
       expect(existsSync(join(dir, 'b-old'))).toBe(false)
       expect(existsSync(join(stuck, 'f'))).toBe(true)
       expect(gone).toBe(1)
+      expect(spy).toHaveBeenCalledWith('[reap] could not delete', stuck, expect.any(String))
     } finally {
+      spy.mockRestore()
       await chmod(stuck, 0o700)
     }
   })

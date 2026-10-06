@@ -46,7 +46,11 @@ export async function reap(d: ReapDeps, now = Date.now()): Promise<Disk> {
   )
 
   for (const name of await readdir(dirs.logs).catch(() => [] as string[])) {
-    if (name.endsWith('.log')) await rotateLog(join(dirs.logs, name), limits.logMaxBytes)
+    if (!name.endsWith('.log')) continue
+    const path = join(dirs.logs, name)
+    await rotateLog(path, limits.logMaxBytes).catch((err) =>
+      console.error('[reap] could not rotate', path, (err as NodeJS.ErrnoException).code),
+    )
   }
 
   return {

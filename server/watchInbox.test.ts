@@ -1,4 +1,5 @@
 import { mkdtemp, mkdir, rm, utimes, writeFile } from 'node:fs/promises'
+import { randomBytes } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import sharp from 'sharp'
@@ -15,6 +16,7 @@ async function bootDaemon(root: string) {
   vi.resetModules()
   vi.stubEnv('TRANSOM_ROOT', root)
   vi.stubEnv('TRANSOM_SWEEP_MS', '40')
+  vi.stubEnv('TRANSOM_INGEST_AT_ONCE', '1')
   await mkdir(join(root, 'inbox'), { recursive: true })
   return await import('./ingest.ts')
 }
@@ -33,6 +35,21 @@ describe('watchInbox', () => {
     vi.unstubAllEnvs()
     vi.resetModules()
     if (root) await rm(root, { recursive: true, force: true })
+  })
+
+  it('is ready only once every file present at startup is adopted', async () => {
+    const { watchInbox } = await bootDaemon(root)
+    const store = await import('./store.ts')
+    await mkdir(join(root, 'inbox', 'z'), { recursive: true })
+    // Large enough that ingest is still working when the watcher reports ready.
+    const big = await sharp(randomBytes(2400 * 2400 * 3), { raw: { width: 2400, height: 2400, channels: 3 } })
+      .png()
+      .toBuffer()
+    for (let i = 0; i < 8; i++) await writeFile(join(root, 'inbox', 'z', `a${i}.png`), big)
+    const w = watchInbox(() => {})
+    stop = () => w.close()
+    await w.ready
+    expect(store.snapshot()).toHaveLength(8)
   })
 
   it('takes in an artifact and reports it under its zone', async () => {
