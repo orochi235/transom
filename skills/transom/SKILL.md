@@ -69,7 +69,7 @@ In order, because each step rules out the one below:
    |---|---|
    | exits 6, `the wall at <url> is not answering` | The wall's Mac is asleep, off the LAN, or its daemon is down. Nothing is queued: send again once it is back. |
    | `the wall refused this (HTTP 401)` | The token is stale. Run `transom pair <this Mac>` again on the wall's Mac. |
-   | `the wall refused this (HTTP 426)` | This Mac's transom is older than the wall's. `brew upgrade transom` here. |
+   | `the wall refused this (HTTP 426)` | The two Macs speak different protocols, and the message names both. `brew upgrade transom` on the one with the lower number. |
 
 ## A repo's `.transom.yaml`
 

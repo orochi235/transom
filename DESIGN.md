@@ -1013,15 +1013,16 @@ costs the sound, never the arrival.
 
 ## Remote senders
 
-A **node** is another Mac on the LAN, such as an onto fleet machine, whose
-agents send renders to the wall running on this one. The wall's Mac has Remote
-Login off, so nothing can ssh to it, but it can ssh out to every node. So the
-install runs from the wall's Mac over ssh, and renders travel over HTTP to the
-daemon on `*:8787`.
+A **node** is another Mac on the LAN, such as one of the build Macs, whose
+agents send renders to the wall running on this one. `pair` runs on the wall's
+Mac and reaches each node over ssh; renders come back over HTTP to the daemon
+on `*:8787`.
 
 **`transom pair studio` sets a node up.** Run on the wall's Mac, it installs
-the tap's release on `studio` with Homebrew (`--head` for the tap's HEAD),
-refuses if that build cannot send remotely (`transom protocol` does not print
+or upgrades the tap's release on `studio` with Homebrew (`--head` installs the
+tap's HEAD, reinstalling over a release), shows brew's own error when that
+fails, says `no Homebrew on studio` when there is none, refuses if the build
+cannot send remotely (`transom protocol` does not print
 `1`), runs `transom wire` there, writes `~/transom/wall.env`, and has the node
 call `GET /api/whoami` to prove it can reach the wall with the token. It is
 safe to run again. `transom pair --off studio` deletes `wall.env` and leaves
@@ -1057,7 +1058,8 @@ mode-600 file removed on exit, on the node and in `pair`'s own check.
 | `GET /api/whoami` | The wall's hostname, for `pair` to check the install. |
 
 **Every route above needs the token from any address but loopback.** The daemon writes a
-random token to `~/transom/token` (mode 600) the first time it starts. A
+random token to `~/transom/token` the first time it starts, and sets the file
+to mode 600 each time it reads it. A
 request without it gets 401 and `this wall wants its token`. The page server on
 `:7750` proxies `/api` and adds `X-Forwarded-For`, so a request arriving on
 loopback is judged by the last address in that header: a LAN request through
@@ -1067,23 +1069,37 @@ restart the daemon, and pair each node again.
 `GET /api/marks/<id>.png` stays open: the wall page loads drawings from it, and
 it shows nothing `/img` and `/orig` do not.
 
-**Remote requests carry `X-Transom-Protocol: 1`.** A different number gets 426
-and `Run brew upgrade transom on the sending host`, so an old node fails loudly
-instead of losing sidecar fields without a word.
+**Remote requests carry `X-Transom-Protocol: 1`.** On the inbox, answers and
+whoami routes a different number gets 426 and `this wall speaks protocol 1, the
+sender spoke <n>. Run brew upgrade transom on whichever side is older`, so an
+old node fails loudly instead of losing sidecar fields without a word.
+
+**The CLI names its session in `X-Transom-Session`** on every send and every
+answer poll, when it runs under Claude Code.
 
 ### What changes across hosts
 
 | On one Mac | From a node |
 |---|---|
 | `zones/<zone>.json` holds the repo's path, and the zone's color comes from that repo's `.hued`. | The sidecar carries the `.hued` text as `hued`, and the zone record keeps it. |
-| A sender counts as running while its pid is a live claude process. | The sidecar carries `host`. The sender counts as running if its session called `marks/claim` in the last 2 minutes. The daemon remembers at most 1024 such sessions. |
-| The hook claims drawings when `marks/waiting/<session>` exists. | A send writes `~/transom/remote-sessions/<session>`. While it exists, the hook claims from `TRANSOM_WALL` on each tool call (2s timeout) and downloads each drawing into `~/transom/marks/remote/`. One that will not download is handed to the session as its URL on the wall. After a failed claim the hook waits 30 seconds before trying again. It deletes its markers and drawings after 24 hours. |
+| A sender counts as running while its pid is a live claude process. | The sidecar carries `host`, and the daemon writes `remote` when it has none. The sender counts as running if its session sent, polled for an answer or called `marks/claim` in the last 2 minutes. An `ask` polls every 30 seconds, so a drawing made while it waits answers it. Session ids over 128 characters are ignored, and the daemon remembers at most 1024 sessions. |
+| The hook claims drawings when `marks/waiting/<session>` exists. | The hook claims from the wall, as below. |
 | `--app Name=path` opens another file. | Dropped with a warning, by the CLI and again by the daemon: a node's path means nothing on the wall's Mac. A bare `--app Name` still opens the sent file there. |
 | The CLI refuses a video when it has no ffmpeg. | The daemon checks instead and returns 422. |
 | Any zone name. | Letters, digits, `.`, `_` and `-` only. |
 
+**On a node, the hook claims from the wall.** A send writes
+`~/transom/remote-sessions/<session>`, and while that exists the hook claims
+from `TRANSOM_WALL` on each tool call, with a 2-second timeout. Each drawing is
+downloaded into `~/transom/marks/remote/`; one that will not download is handed
+to the session as its URL on the wall. When the wall turns the token away (401)
+the session is told to run `transom pair <this host>` on the wall, and when it
+speaks another protocol (426), to run `brew upgrade transom` on this host.
+After any failed claim the hook waits 30 seconds before asking again. It
+deletes its markers and drawings after 24 hours.
+
 **Known limits.** After the wall's daemon restarts, the wall treats a node's
-session as ended until its next tool call. An answer is handed
+session as ended until its next tool call, send or answer poll. An answer is handed
 over once: if the connection drops after the wall deleted it, `ask` waits
 forever. Anyone holding the token can overwrite `zones/<zone>.json` for any
 zone, which changes only its color.
@@ -1124,19 +1140,19 @@ click is not attention — you get the sediment folder back with extra steps.
 mode is being heads-down for 40 minutes, not glancing up as something dies; a
 10-minute trash catches almost none of those and only feels like a safety net.
 
-**The reaper bounds everything the daemon writes.** It runs once the inbox
+**The reaper keeps the directories below within bounds.** It runs once the inbox
 present at startup has been taken in — before that the store is empty and
 every thumbnail would look orphaned — and then every 10 minutes. Each limit
 with a variable can be set in the daemon's environment.
 
 | What | Rule | Variable |
 |---|---|---|
-| `inbox/` and `.cache` together | Over 20 GB, expire the oldest cards through normal expiry, so they go to the trash and the wall animates them away. Pinned cards, open questions, cards with undelivered drawings and eternal zones are never taken; `indefinite` ones are. Each card is checked again just before it goes. | `TRANSOM_WALL_MAX` |
+| `inbox/` and `.cache` together | Over 20 GB (`0` reads as unset), expire the oldest cards through normal expiry, so they go to the trash and the wall animates them away. Pinned cards, open questions, cards with undelivered drawings and eternal zones are never taken; `indefinite` ones are. Each card is checked again just before it goes. | `TRANSOM_WALL_MAX` |
 | `trash/` | Delete what has been there longer than 24 hours, then the oldest until it is under 10 GB. | `TRANSOM_TRASH_TTL`, `TRANSOM_TRASH_MAX` |
 | `.cache` | Delete a thumbnail or poster no card uses, once it is an hour old: ingest writes it before the store holds the card. | — |
 | `answers/` | Delete an answer no CLI collected within 24 hours. | — |
 | `.incoming/` | Delete a remote upload cut off partway, after an hour. | — |
-| `marks/` | Delete records and drawings for cards no longer on the wall, after the trash's 24 hours. | — |
+| `marks/` | Delete records and drawings for cards no longer on the wall, after the trash's 24 hours. `marks/remote/` is the hook's, and it prunes that itself. | — |
 | `~/.local/state/transom/*.log` | Over 25 MB, copy to `<name>.1` and truncate in place. | `TRANSOM_LOG_MAX` |
 
 **Age is the later of a file's mtime and ctime.** Moving a card into the trash
@@ -1146,7 +1162,8 @@ only because launchd opens it with `O_APPEND`; a writer without that keeps its
 offset and leaves a sparse file.
 
 A file that will not delete is logged as `[reap] could not delete` and
-skipped, so one stuck file never stops a pass. When the cards it may not take
+skipped, so one stuck file never stops a pass. A log that cannot be rotated is
+logged and skipped too. When the cards it may not take
 hold more than the cap on their own, nothing more can be evicted: `/api/health`
 reports the sizes, and the band shows a `disk` chip until it fits.
 
