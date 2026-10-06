@@ -13,4 +13,9 @@ describe('parseBytes', () => {
     expect(parseBytes('lots', 7)).toBe(7)
     expect(parseBytes('-5G', 7)).toBe(7)
   })
+  it('reads zero as unset, not as a cap of nothing', () => {
+    expect(parseBytes('0', 7)).toBe(7)
+    expect(parseBytes('0G', 7)).toBe(7)
+    expect(parseBytes('0.0001', 7)).toBe(7)
+  })
 })

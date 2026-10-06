@@ -123,10 +123,12 @@ export function snapshot(): WallItem[] {
   return [...entries.values()].map((e) => e.item)
 }
 
-/** Whether a card may be evicted for space: not pinned, not asked, not marked,
- *  not in an eternal zone. */
-const mayEvict = (e: Entry): boolean =>
-  !e.item.keptAt && !isOpen(e.item) && !holdsMarks(e) && !isEternal(zoneLifetime(e.item.zone))
+/** Pinned, asked, or holding undelivered marks: neither its lifetime nor the
+ *  reaper may take it. */
+const isHeld = (e: Entry): boolean => !!e.item.keptAt || isOpen(e.item) || holdsMarks(e)
+
+/** Whether a card may be evicted for space: not held, not in an eternal zone. */
+const mayEvict = (e: Entry): boolean => !isHeld(e) && !isEternal(zoneLifetime(e.item.zone))
 
 /** What the reaper may take when the wall is over its cap, oldest first. A
  *  pinned card, an open question, undelivered marks and an eternal zone are
@@ -249,7 +251,7 @@ export function startSweeper(): () => void {
     const now = Date.now()
     for (const entry of entries.values()) {
       // An open question has someone waiting on it.
-      if (entry.item.keptAt || isOpen(entry.item) || holdsMarks(entry)) continue
+      if (isHeld(entry)) continue
       // A question can stay open for longer than a TTL, so an answered card
       // gets a whole life from its answer — and a group from its last one, since
       // reviewing the twelfth take is not a reason to have already dropped it.

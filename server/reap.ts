@@ -40,9 +40,10 @@ export async function reap(d: ReapDeps, now = Date.now()): Promise<Disk> {
   await pruneToSize(dirs.trash, limits.trashMaxBytes)
   await pruneByAge(dirs.answers, limits.answersMs, now)
   await pruneByAge(dirs.incoming, limits.incomingMs, now)
-  // A record and its composite share the artifact id; `waiting/` is the hook's flags.
+  // A record and its composite share the artifact id; `waiting/` is the hook's
+  // flags, and `remote/` the drawings the hook fetched from another wall.
   await pruneByAge(dirs.marks, limits.trashMs, now, (name) =>
-    name === 'waiting' || ids.has(basename(name, extname(name))),
+    name === 'waiting' || name === 'remote' || ids.has(basename(name, extname(name))),
   )
 
   for (const name of await readdir(dirs.logs).catch(() => [] as string[])) {

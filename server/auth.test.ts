@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
+import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import express from 'express'
@@ -18,6 +18,13 @@ describe('loadToken', () => {
     expect(await loadToken(file)).toBe(first)
     expect((await readFile(file, 'utf8')).trim()).toBe(first)
   })
+  it('tightens a kept token file left readable by others', async () => {
+    const file = join(dir, 'token')
+    await writeFile(file, `${'b'.repeat(64)}\n`)
+    await chmod(file, 0o644)
+    expect(await loadToken(file)).toBe('b'.repeat(64))
+    expect((await stat(file)).mode & 0o777).toBe(0o600)
+  })
 })
 
 describe('allowed', () => {
@@ -29,6 +36,10 @@ describe('allowed', () => {
     expect(allowed('192.168.1.9', undefined, 't')).toBe(false)
     expect(allowed('192.168.1.9', 'Bearer nope', 't')).toBe(false)
     expect(allowed('192.168.1.9', 'Bearer t', 't')).toBe(true)
+  })
+  it('lets nobody in on an empty token', () => {
+    expect(allowed('192.168.1.9', undefined, '')).toBe(false)
+    expect(allowed('192.168.1.9', 'Bearer ', '')).toBe(false)
   })
 })
 

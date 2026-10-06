@@ -40,6 +40,8 @@ describe('reap', () => {
     await writeFile(join(root, 'marks', 'gone.json'), '{}')
     await writeFile(join(root, 'marks', 'live.json'), '{}')
     await writeFile(join(root, 'marks', 'waiting', 's1'), '')
+    await mkdir(join(root, 'marks', 'remote'))
+    await writeFile(join(root, 'marks', 'remote', 'r.png'), 'x')
     await reap(deps({ inUse: () => ({ ids: new Set(['live']), caches: new Set() }) }), later(25))
     expect(existsSync(join(root, 'trash', 'a-z'))).toBe(false)
     expect(existsSync(join(root, 'answers', 'q.png'))).toBe(false)
@@ -47,6 +49,8 @@ describe('reap', () => {
     expect(existsSync(join(root, 'marks', 'gone.json'))).toBe(false)
     expect(existsSync(join(root, 'marks', 'live.json'))).toBe(true)
     expect(existsSync(join(root, 'marks', 'waiting', 's1'))).toBe(true)
+    // The hook's, which prunes it itself.
+    expect(existsSync(join(root, 'marks', 'remote', 'r.png'))).toBe(true)
   })
 
   it('deletes thumbnails no card uses once they are an hour old', async () => {

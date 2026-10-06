@@ -4,7 +4,10 @@ import type { Request, RequestHandler } from 'express'
 
 export async function loadToken(file: string): Promise<string> {
   const held = (await readFile(file, 'utf8').catch(() => '')).trim()
-  if (/^[0-9a-f]{64}$/.test(held)) return held
+  if (/^[0-9a-f]{64}$/.test(held)) {
+    await chmod(file, 0o600)
+    return held
+  }
   const made = randomBytes(32).toString('hex')
   await writeFile(file, `${made}\n`, { mode: 0o600 })
   await chmod(file, 0o600)
@@ -19,7 +22,7 @@ export function allowed(addr: string | undefined, authorization: string | undefi
   const given = /^Bearer (.+)$/.exec(authorization ?? '')?.[1] ?? ''
   const a = Buffer.from(given)
   const b = Buffer.from(token)
-  return a.length === b.length && timingSafeEqual(a, b)
+  return b.length > 0 && a.length === b.length && timingSafeEqual(a, b)
 }
 
 /** Behind the page server's proxy every request arrives from loopback; the proxy appends the real peer to X-Forwarded-For. */

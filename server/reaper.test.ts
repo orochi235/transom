@@ -13,8 +13,8 @@ afterEach(async () => {
   await rm(dir, { recursive: true, force: true })
 })
 
-/** A file of `size` bytes whose mtime is `ageMs` before `now`. Its ctime is
- *  the real now, so tests pass `now` near Date.now() for ctime to count. */
+/** A file of `size` bytes with its mtime set to `mtime`. Its ctime is the
+ *  real now, so tests pass `now` near Date.now() for ctime to count. */
 async function file(name: string, size: number, mtime: number) {
   const p = join(dir, name)
   await writeFile(p, Buffer.alloc(size))
