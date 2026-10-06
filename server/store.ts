@@ -123,6 +123,41 @@ export function snapshot(): WallItem[] {
   return [...entries.values()].map((e) => e.item)
 }
 
+/** What the reaper may take when the wall is over its cap, oldest first. A
+ *  pinned card, an open question, undelivered marks and an eternal zone are
+ *  never on it. */
+export function evictable(): { id: string; bornAt: number; paths: string[] }[] {
+  return [...entries.values()]
+    .filter((e) => !e.item.keptAt && !isOpen(e.item) && !holdsMarks(e) && !isEternal(zoneLifetime(e.item.zone)))
+    .sort((a, b) => a.item.bornAt - b.item.bornAt)
+    .map((e) => ({
+      id: e.item.id,
+      bornAt: e.item.bornAt,
+      paths: filesOf(e).flatMap((f) => [f.sourcePath, f.cachePath]),
+    }))
+}
+
+/** Every artifact id and thumbnail a card on the wall still uses. */
+export function inUse(): { ids: Set<string>; caches: Set<string> } {
+  const ids = new Set<string>()
+  const caches = new Set<string>()
+  for (const e of entries.values()) {
+    for (const [id, f] of artifactsOf(e)) {
+      ids.add(id)
+      caches.add(f.cachePath)
+    }
+  }
+  return { ids, caches }
+}
+
+/** Expiry for space. Announced like a TTL running out, so never an undo step. */
+export async function evict(id: string): Promise<boolean> {
+  const entry = entries.get(id)
+  if (!entry) return false
+  await expire(entry)
+  return true
+}
+
 export function onExpire(fn: (id: string) => void) {
   listeners.add(fn)
 }
