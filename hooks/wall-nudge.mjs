@@ -9,7 +9,7 @@
 // is one command.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { homedir, hostname } from 'node:os'
 import path from 'node:path'
 
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|tiff?|avif)$/i
@@ -159,25 +159,48 @@ export function wallEnv(root = transomRoot()) {
 }
 
 const WALL_DOWN = '.wall-down'
-const WALL_DOWN_MS = 30_000
+const WALL_REFUSED = '.wall-refused'
+const SKIP_MS = 30_000
 
 export function sentRemotely(session, root = transomRoot()) {
   if (typeof session !== 'string' || session === '') return false
   const name = session.replace(/[^A-Za-z0-9._-]/g, '_')
-  return name !== WALL_DOWN && existsSync(path.join(root, 'remote-sessions', name))
+  return name !== WALL_DOWN && name !== WALL_REFUSED && existsSync(path.join(root, 'remote-sessions', name))
+}
+
+const fresh = (marker) => {
+  try {
+    return Date.now() - statSync(marker).mtimeMs < SKIP_MS
+  } catch {
+    return false
+  }
+}
+
+const mark = (marker) => {
+  try {
+    mkdirSync(path.dirname(marker), { recursive: true })
+    writeFileSync(marker, '')
+  } catch { /* the marker only saves time */ }
+}
+
+/** What the session is told when the wall turns this host away. */
+export function refusal(status, wall) {
+  if (status === 401)
+    return `transom: the wall at ${wall} refused this host's token — run \`transom pair ${hostname().replace(/\.local$/, '')}\` on the wall.\n`
+  return `transom: the wall at ${wall} speaks a different protocol — run \`brew upgrade transom\` on this host.\n`
 }
 
 /** Claims from the wall host, and swaps each drawing's path there for a copy
  *  here — the session cannot read the wall host's disk. An id that is not a
  *  plain hash is skipped: it becomes a filename here. A drawing that will not
  *  download is still returned, pointing at the wall, because the claim already
- *  marked it delivered. After the wall fails to answer, it is left alone for
- *  30 seconds so each tool call does not wait out the timeout. */
+ *  marked it delivered. After the wall fails to answer or turns the token
+ *  away, it is left alone for 30 seconds so each tool call does not ask again;
+ *  a refusal comes back as `notice`, for the session to read. */
 export async function claimRemote(session, env, root = transomRoot()) {
   const down = path.join(root, 'remote-sessions', WALL_DOWN)
-  try {
-    if (Date.now() - statSync(down).mtimeMs < WALL_DOWN_MS) return []
-  } catch { /* no marker */ }
+  const refused = path.join(root, 'remote-sessions', WALL_REFUSED)
+  if (fresh(down) || fresh(refused)) return { claimed: [], notice: '' }
   const headers = { Authorization: `Bearer ${env.token}`, 'X-Transom-Protocol': '1' }
   let claimed
   try {
@@ -187,15 +210,17 @@ export async function claimRemote(session, env, root = transomRoot()) {
       body: JSON.stringify({ session }),
       signal: AbortSignal.timeout(2000),
     })
+    rmSync(down, { force: true })
+    if (res.status === 401 || res.status === 426) {
+      mark(refused)
+      return { claimed: [], notice: refusal(res.status, env.wall) }
+    }
+    rmSync(refused, { force: true })
     const body = await res.json()
     claimed = Array.isArray(body?.claimed) ? body.claimed : []
-    rmSync(down, { force: true })
   } catch {
-    try {
-      mkdirSync(path.dirname(down), { recursive: true })
-      writeFileSync(down, '')
-    } catch { /* the marker only saves time */ }
-    return []
+    mark(down)
+    return { claimed: [], notice: '' }
   }
   const dir = path.join(root, 'marks', 'remote')
   const kept = []
@@ -215,7 +240,7 @@ export async function claimRemote(session, env, root = transomRoot()) {
     }
     kept.push(c)
   }
-  return kept
+  return { claimed: kept, notice: '' }
 }
 
 /** Forgets only what this hook wrote; the local daemon's own marks/ records
@@ -274,10 +299,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
   const env = sentRemotely(p?.session_id) ? wallEnv() : null
   if (env) pruneRemote()
-  const claimed = env
+  const { claimed, notice } = env
     ? await claimRemote(p.session_id, env)
-    : marksWaiting(p?.session_id) ? await claimMarks(p.session_id) : []
-  const marked = marksMessage(claimed)
+    : { claimed: marksWaiting(p?.session_id) ? await claimMarks(p.session_id) : [], notice: '' }
+  const marked = notice + marksMessage(claimed)
 
   const paths = candidates(p)
   const hits = paths.length > 0 && !(await previewHere(p?.cwd)) ? toNudge(paths, { now, seen }) : []

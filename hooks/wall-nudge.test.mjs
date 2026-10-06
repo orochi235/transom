@@ -221,7 +221,7 @@ describe('a remote wall', () => {
 
   it('claims with the token and keeps a local copy of each drawing', async () => {
     const { server, env } = await serve([{ id: ID, caption: 'c', zone: 'z', image: '/wall/marks/x.png', text: '' }])
-    const got = await claimRemote('s1', env, dir)
+    const { claimed: got } = await claimRemote('s1', env, dir)
     server.close()
     expect(got[0].image).toBe(path.join(dir, 'marks', 'remote', `${ID}.png`))
     expect(readFileSync(got[0].image, 'utf8')).toBe('PNG')
@@ -229,7 +229,7 @@ describe('a remote wall', () => {
 
   it('skips a claimed id that is not a plain hash, writing nothing outside marks/', async () => {
     const { server, env } = await serve([{ id: '../../evil', caption: 'c', zone: 'z', image: '/x.png', text: '' }])
-    const got = await claimRemote('s1', env, dir)
+    const { claimed: got } = await claimRemote('s1', env, dir)
     server.close()
     expect(got).toEqual([])
     expect(existsSync(path.join(dir, '..', 'evil.png'))).toBe(false)
@@ -248,7 +248,7 @@ describe('a remote wall', () => {
   it('announces a drawing that will not download by its wall URL, writing nothing', async () => {
     const id = 'b'.repeat(32)
     const { server, env } = await serve([{ id, caption: 'c', zone: 'z', image: '/x.png', text: '' }])
-    const got = await claimRemote('s1', env, dir)
+    const { claimed: got } = await claimRemote('s1', env, dir)
     server.close()
     expect(got[0].image).toBe(`${env.wall}/api/marks/${id}.png`)
     expect(existsSync(path.join(dir, 'marks', 'remote', `${id}.png`))).toBe(false)
@@ -260,7 +260,7 @@ describe('a remote wall', () => {
       { id: bad, caption: 'c', zone: 'z', image: '/x.png', text: '' },
       { id: ID, caption: 'c', zone: 'z', image: '/y.png', text: '' },
     ])
-    const got = await claimRemote('s1', env, dir)
+    const { claimed: got } = await claimRemote('s1', env, dir)
     server.close()
     expect(got.map((c) => c.image)).toEqual([
       `${env.wall}/api/marks/${bad}.png`,
@@ -273,11 +273,43 @@ describe('a remote wall', () => {
     const server = http.createServer((req) => { hits++; req.socket.destroy() })
     await new Promise((r) => server.listen(0, r))
     const env = { wall: `http://127.0.0.1:${server.address().port}`, token: 'tok' }
-    expect(await claimRemote('s1', env, dir)).toEqual([])
-    expect(await claimRemote('s1', env, dir)).toEqual([])
+    expect(await claimRemote('s1', env, dir)).toEqual({ claimed: [], notice: '' })
+    expect(await claimRemote('s1', env, dir)).toEqual({ claimed: [], notice: '' })
     server.close()
     expect(hits).toBe(1)
     expect(sentRemotely('.wall-down', dir)).toBe(false)
+  })
+
+  const refusing = async (status) => {
+    let hits = 0
+    const server = http.createServer((_req, res) => {
+      hits++
+      res.statusCode = status
+      res.setHeader('Content-Type', 'text/plain')
+      res.end('transom: no\n')
+    })
+    await new Promise((r) => server.listen(0, r))
+    return { server, env: { wall: `http://127.0.0.1:${server.address().port}`, token: 'stale' }, hits: () => hits }
+  }
+
+  it('tells the session once when the wall refuses its token', async () => {
+    const { server, env, hits } = await refusing(401)
+    const first = await claimRemote('s1', env, dir)
+    const second = await claimRemote('s1', env, dir)
+    server.close()
+    expect(first.claimed).toEqual([])
+    expect(first.notice).toContain(`the wall at ${env.wall} refused this host's token`)
+    expect(first.notice).toContain('transom pair')
+    expect(second).toEqual({ claimed: [], notice: '' })
+    expect(hits()).toBe(1)
+    expect(sentRemotely('.wall-refused', dir)).toBe(false)
+  })
+
+  it('tells the session to upgrade when the wall speaks another protocol', async () => {
+    const { server, env } = await refusing(426)
+    const { notice } = await claimRemote('s1', env, dir)
+    server.close()
+    expect(notice).toContain('brew upgrade transom')
   })
 
   it('keeps recent ones', () => {
