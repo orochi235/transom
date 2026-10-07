@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Rect } from 'windease'
-import { zoneAt } from '@/nav/pick.ts'
+import { cardHit, zoneAt } from '@/nav/pick.ts'
 
 const box = (x: number, y: number, w: number, h: number): Rect => ({ x, y, z: 0, w, h })
 
@@ -42,5 +42,21 @@ describe('zoneAt', () => {
 
   it('names nothing on an empty wall', () => {
     expect(zoneAt({ x: 0, y: 0 }, new Map())).toBeNull()
+  })
+})
+
+describe('cardHit', () => {
+  const zoneOf = (id: string) => id.split(':')[0]
+
+  it('takes the nearest card when the pointer is over no base', () => {
+    expect(cardHit(['bricks:deep', 'perch:front'], zoneOf, null)).toBe('bricks:deep')
+  })
+
+  it("passes over a neighbour's deep card for the card of the base under the pointer", () => {
+    expect(cardHit(['bricks:deep', 'perch:front'], zoneOf, 'perch')).toBe('perch:front')
+  })
+
+  it("hits nothing over a base whose own pile is not under the pointer, rather than the neighbour's tail", () => {
+    expect(cardHit(['bricks:deep'], zoneOf, 'perch')).toBeUndefined()
   })
 })

@@ -570,6 +570,11 @@ it steals the card picks, which puts it several world units back and
 parallax-shifted the moment the camera turns. Hit-testing the cells answers for
 a pile with no cards in it too.
 
+**Over a pile's base, only that pile's cards can be picked.** Perspective swings
+a deep pile's back ranks across its neighbors, and the nearest card would win
+clicks the base under the pointer plainly owns. Between bases the nearest card
+still wins.
+
 **`camera.margins` holds one entry per rung**, the last serving every rung past
 it. Arrows are read by rung the same way: across the zone grid at a pile, and
 front to back through the pile itself inside a card, clamping at both ends —

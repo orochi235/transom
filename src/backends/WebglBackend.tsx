@@ -59,7 +59,7 @@ import {
 } from '@/nav/keys.ts'
 import { afterDelete, jumpFrom, pageFrom, readingOrder, streamFrom } from '@/nav/list.ts'
 import { neighborOf } from '@/nav/neighbor.ts'
-import { zoneAt } from '@/nav/pick.ts'
+import { cardHit, zoneAt } from '@/nav/pick.ts'
 import { liftedHex, liftedTint } from '@/nav/zone-tint.ts'
 import { offscreen, type Box } from '@/nav/whitespace.ts'
 import { ladder, SIDES, solve, type Card, type Group, type Placement, type PlateSize } from '@/nav/ladder.ts'
@@ -671,6 +671,23 @@ function Wall({
   const raycaster = useMemo(() => new THREE.Raycaster(), [])
   const zeroPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), [])
 
+  /** The card the raycaster's current ray picks, its badge counting as the
+   *  card. The base under the pointer owns the pick (`cardHit`). */
+  const cardUnder = (): string | undefined => {
+    const targets: THREE.Object3D[] = [...meshes.current.values()]
+    for (const { plate } of badges.byId.values()) if (plate.visible) targets.push(plate)
+    const point = new THREE.Vector3()
+    const owner = raycaster.ray.intersectPlane(zeroPlane, point)
+      ? zoneAt({ x: point.x, y: -point.y }, bases.current)
+      : null
+    const hit = cardHit(
+      raycaster.intersectObjects(targets, false),
+      (h) => zoneById.current.get(h.object.userData.transomId as string),
+      owner,
+    )
+    return hit?.object.userData.transomId as string | undefined
+  }
+
   /**
    * The full path under the pointer — the pile, plus the card if one is hit.
    * A card is a mesh and a pile is not: its footprint is hit-tested against the
@@ -696,10 +713,7 @@ function Wall({
       if (raycaster.intersectObject(sprite, false).length > 0) return [zone]
     }
 
-    const targets: THREE.Object3D[] = [...meshes.current.values()]
-    for (const { plate } of badges.byId.values()) if (plate.visible) targets.push(plate)
-    const hit = raycaster.intersectObjects(targets, false)[0]
-    const id = hit?.object.userData.transomId as string | undefined
+    const id = cardUnder()
     const hitZone = id ? zoneById.current.get(id) : undefined
     if (id && hitZone) {
       // A card is a destination, not a rung: hitting one goes straight to its
@@ -726,9 +740,7 @@ function Wall({
    * the whole wall and reports a zone where there is no card at all.
    */
   const hoverAt = (clientX: number, clientY: number): string | null => {
-    const targets: THREE.Object3D[] = [...meshes.current.values()]
-    for (const { plate } of badges.byId.values()) if (plate.visible) targets.push(plate)
-    if (targets.length === 0) return null
+    if (meshes.current.size === 0) return null
 
     const rect = gl.domElement.getBoundingClientRect()
     raycaster.setFromCamera(
@@ -738,8 +750,7 @@ function Wall({
       ),
       camera,
     )
-    const hit = raycaster.intersectObjects(targets, false)[0]
-    return (hit?.object.userData.transomId as string | undefined) ?? null
+    return cardUnder() ?? null
   }
 
   /** One rung per gesture: across if the cursor is over another branch, down

@@ -26,3 +26,16 @@ export function zoneAt(
   }
   return best ? best.zone : null
 }
+
+/**
+ * Which of the ray's hits, nearest first, the pointer means. Over a zone's base
+ * only that zone's cards count: perspective swings a pile's deep ranks across
+ * its neighbours, and nearest-first would hand them a neighbour's clicks.
+ */
+export function cardHit<T>(
+  hits: readonly T[],
+  zoneOf: (hit: T) => string | undefined,
+  owner: string | null,
+): T | undefined {
+  return owner === null ? hits[0] : hits.find((hit) => zoneOf(hit) === owner)
+}
