@@ -4,7 +4,7 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import { createServer } from 'node:http'
 import { mkdir } from 'node:fs/promises'
 import { config } from './config.ts'
-import { loadToken } from './auth.ts'
+import { guardWrites, loadToken } from './auth.ts'
 import { mountRemote } from './remote.ts'
 import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
@@ -35,6 +35,7 @@ await mkdir(config.cache, { recursive: true })
 const token = await loadToken(config.token)
 
 const app = express()
+app.use(guardWrites(token))
 mountRemote(app, { token })
 const http = createServer(app)
 const wss = new WebSocketServer({ server: http, path: '/ws' })
@@ -74,7 +75,7 @@ mountWall(app, { broadcast, disk: () => disk })
 mountMeshView(app)
 mountFiles(app)
 mountItems(app, { broadcast })
-const announceMarks = mountMarks(app, { token, broadcast })
+const announceMarks = mountMarks(app, { broadcast })
 mountZones(app, {
   broadcast,
   icons: () => zoneIcons,

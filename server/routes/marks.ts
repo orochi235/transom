@@ -1,5 +1,4 @@
 import express, { type Express } from 'express'
-import { guard } from '../auth.ts'
 import * as store from '../store.ts'
 import { pngOf, sawSession } from '../markup.ts'
 import type { ServerMessage } from '@shared/protocol.ts'
@@ -7,9 +6,9 @@ import type { ServerMessage } from '@shared/protocol.ts'
 /** Returns the announcer, for the tick that rechecks whether senders are still running. */
 export function mountMarks(
   app: Express,
-  opts: { token: string; broadcast: (msg: ServerMessage) => void },
+  opts: { broadcast: (msg: ServerMessage) => void },
 ): (news: store.MarkNews) => void {
-  const { broadcast, token } = opts
+  const { broadcast } = opts
 
   /** A drawing's change, and the reply it closed a question with if it did. */
   function announceMarks(news: store.MarkNews) {
@@ -52,7 +51,7 @@ export function mountMarks(
   // The hook, at a session's tool call, collecting every drawing waiting for
   // it. Delivered the moment it is handed over: the hook prints it to the model
   // in the same breath.
-  app.post('/api/marks/claim', guard(token), express.json(), async (req, res) => {
+  app.post('/api/marks/claim', express.json(), async (req, res) => {
     const session = (req.body as { session?: unknown } | undefined)?.session
     if (typeof session !== 'string' || session === '') return void res.status(400).json({ ok: false })
     sawSession(session)

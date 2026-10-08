@@ -1115,14 +1115,16 @@ mode-600 file removed on exit, on the node and in `pair`'s own check.
 | `POST /api/marks/claim` | What the node's hook calls to collect drawings. |
 | `GET /api/whoami` | The wall's hostname, for `pair` to check the install. |
 
-**Every route above needs the token from any address but loopback.** The daemon writes a
-random token to `~/transom/token` the first time it starts, and sets the file
-to mode 600 each time it reads it. A
+**Every route above, and every request on any route that is not a `GET`, needs
+the token from any address but loopback.** Reads stay open, so a wall page
+opened from another host shows the wall but cannot dismiss, keep, answer, draw
+or open anything. The daemon writes a random token to `~/transom/token` the
+first time it starts, and sets the file to mode 600 each time it reads it. A
 request without it gets 401 and `this wall wants its token`. The page server on
 `:7750` proxies `/api` and adds `X-Forwarded-For`, so a request arriving on
-loopback is judged by the last address in that header: a LAN request through
-the page server needs the token too. To change the token, delete the file,
-restart the daemon, and pair each node again.
+loopback is judged by the last address in that header: a LAN request through the
+page server needs the token too. To change the token, delete the file, restart
+the daemon, and pair each node again.
 
 `GET /api/marks/<id>.png` stays open: the wall page loads drawings from it, and
 it shows nothing `/img` and `/orig` do not.
@@ -1387,11 +1389,6 @@ Base64-over-WebSocket hitches every time a render lands.
   goes back to ordinary. A thread would let the agent follow up on the same
   card, and needs a history in the lightbox and a way to mark it resolved. Worth
   it only if follow-ups keep arriving as new cards.
-- **Most of `/api` still answers the whole LAN without the token.** Sending,
-  answers, `whoami` and `POST /api/marks/claim` need it (*Remote senders*).
-  Everything else takes requests from any host, including
-  `POST /api/items/:id/open`, which runs `open -a` on the wall host. Whether
-  the rest follow, with the wall page exempt by loopback, is undecided.
 - **Multi-monitor.** Does a zone ever span displays, or is one board one screen?
 - **Where unsent marks go when their session has gone — TODO, deliberately
   unbuilt.** Today a drawing whose sender has exited stays on its card until
