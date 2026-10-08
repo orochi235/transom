@@ -44,8 +44,7 @@ One render backend: r3f. Arrangements place in three dimensions — which is not
 the same as perspective, and by default is not perspective at all (see The
 stack's camera). The DOM/CSS backend it grew up beside was a hedge against the
 3D wall not working; the 3D wall works, so it is gone, and with it the flat
-arrangements and the `?backend=` flag that chose between them. See
-`docs/superpowers/specs/2026-09-02-webgl-backend-design.md`.
+arrangements and the `?backend=` flag that chose between them.
 
 Run it chromeless:
 
@@ -89,8 +88,28 @@ renderer.
 An arrangement is a windease `LayoutStrategy` plus the camera it wants: a pure
 function from items and a container to rects, with transom's own channels
 (`z`, `opacity`, `rotX/Y/Z`, `saturation`, `blur`, `lod`, `emphasis`) riding
-alongside. The contract is in the WebGL spec; `src/arrangements/types.ts` is the
-whole of it in code.
+alongside. `src/arrangements/types.ts` is the whole of it in code.
+
+**transom takes windease's strategies and never its host.** `ContainerHost`
+recomputes on store mutation, so driving it per frame would be sixty store writes
+a second, and its nodes carry a lifecycle of their own — a second owner of "when
+does this exist" beside the daemon. So every call passes `state: undefined`, the
+allocators stay closures inside the strategy factory, and `now` rides in
+`options`.
+
+**`Rect.z` is required**, so the compiler catches a rect-producing site that
+forgot depth, and a flat layout emits `0`, never `null`, because it genuinely is
+at depth zero. A
+placement is the square slot `w = h = side` and the renderer fits the image
+inside it, so aspect never reaches a strategy.
+
+**`channels` is untyped on purpose.** windease carries
+`Map<id, Record<string, number>>` and never reads it. A number belongs there when
+windease asks no question of it — fit, placed, under the cursor, which neighbor —
+and a number it should reason about is a change to windease's core, not a
+channel. A typed vocabulary would be windease's forever and would invite layout
+depending on a rendering property ("is a transparent item unplaced?"); `number`
+is the one assumption, because cross-fade lerps every channel blindly.
 
 It is recomputed each frame, and pure. Two things follow, and they are the
 reason for the shape:
@@ -190,9 +209,9 @@ The camera belongs to `stack`'s design rather than to the renderer; `inbox`
 borrows it unchanged.
 
 **A pile is a volume, and nothing models it as one.** Its depth is
-`rank × step.z` — 0.035 world units a card, against cards 0.22 on a side and a
-wall 1.0 unit tall. A pile is deeper than a card is wide at 7 cards, deeper than
-the entire wall is tall at 29, and `rankCap` 200 allows seven walls. Every box
+`rank × step.z` — 0.023 world units a card, against cards 0.305 on a side and a
+wall 1.0 unit tall. A pile is deeper than a card is wide at 14 cards, deeper than
+the entire wall is tall at 44, and `rankCap` 88 allows two walls. Every box
 computed about it is nonetheless flat: the zone cell, the framed union, the plan
 view rect. windease's `Rect` carries a z position and no z extent, so a layout
 can say where in depth something sits and never how deep it is. Head-on that
@@ -581,9 +600,12 @@ the silence that ends a gesture. But a gate on gestures is not a gate on rate �
 every notch of a mouse wheel is its own gesture, and brisk notches walked the
 wall as fast as a flick — so `nav.floorMs` sets the least time between rungs,
 and **it has to exceed `quietMs`** or the response goes bimodal across that
-boundary. A pinch skips the gate: fingers on the glass carry no momentum, so
-there is no tail to separate. The lightbox reads the same gate, which is how the
-flick that opened it is stopped from zooming the image it landed on.
+boundary. `quietMs` in turn has to exceed a frame: under about 16ms every event
+of a trackpad stream reads as a new gesture and zeroes the charge, and the wall
+stops answering the wheel at all. A pinch skips the gate: fingers on the glass
+carry no momentum, so there is no tail to separate. The lightbox reads the same
+gate, which is how the flick that opened it is stopped from zooming the image it
+landed on.
 
 **A pinch is a wheel event with `ctrlKey` set.** macOS reports a trackpad pinch
 nowhere else, so the two are one handler at two scales — pinch deltas run an
@@ -606,8 +628,11 @@ it. Arrows are read by rung the same way: across the zone grid at a pile, and
 front to back through the pile itself inside a card, clamping at both ends —
 unless the band's `list` row (`L`) is on, which chains every pile into one row
 so paging carries across. Shift and an arrow jumps to a neighboring pile's
-front card. `docs/superpowers/specs/2026-09-13-long-list-and-delete-design.md`
-has the order and the landing rules.
+front card. The list reads piles by row, then left to right by where their
+front cards sit, and each pile deepest to front, so every step reverses exactly
+and the ends do not wrap. Delete or Backspace expires the open card and moves to
+what ← would open, else →, so the lightbox never closes and reopens; with
+nothing left it steps out. `src/nav/list.ts` holds the rules.
 
 ### Entry behavior is a separate axis
 
@@ -738,13 +763,6 @@ against every arrangement.
   three minutes instead of by waiting for one. It does not answer what the real
   rate *is* — only living with it does that — but it decouples the layout
   question from that wait.
-
-### Pinned items
-
-Pinned items freeze their `age01` and move to a reserved band; the flowing set
-arranges in the space that's left. One rule that works for every arrangement,
-rather than an independent "reflow around a hole" packing problem per
-arrangement.
 
 ### Inbox
 
@@ -1168,12 +1186,26 @@ A zone's lifetime is written to `zones.json` the way a person would — `8h`, or
 the hold's own word — and a record this build cannot read leaves the zone
 inheriting.
 
-**Saving is capacity-bounded.** Not yet built — keeping is currently unbounded,
-and the bound waits on having watched a wall that can rescue at all. The keep
-set holds N (start at 12). Keeping
-something when the set is full means choosing what it displaces. Without a bound,
-"permanence earned by attention" collapses into one click and forever, and one
-click is not attention — you get the sediment folder back with extra steps.
+**Pinning a card — the menu's Pin — takes it off the clock where it stands.**
+`keptAt` freezes its age, so it keeps the brightness it had while everything
+around it fades, and neither the sweeper nor startup adoption trashes it. The
+rescue is written to the sidecar as `kept`, because adoption re-reads sidecars
+and a keep held only in memory would let the file expire on the next daemon
+restart. The file does not move: it is safe from the wall, not from `rm`.
+
+**Unbuilt: the keep set has no bound, and pinned cards have no band of their
+own.**
+
+- **The bound.** The keep set holds N (start at 12), and pinning when it is full
+  means choosing what the new one displaces — the menu is where that choice
+  surfaces. Without a bound, "permanence earned by attention" collapses into one
+  click and forever, and one click is not attention: the sediment folder comes
+  back with extra steps. It waits on living with a wall that can rescue at all,
+  since twelve is a guess about a pressure nobody has felt yet.
+- **The reserved band.** Pinned cards leave the flowing set for a band of their
+  own, and the flowing set arranges in the space that is left — one rule for
+  every arrangement, rather than each packing around a hole. Today a pinned card
+  stays in its pile at its rank, set apart only by its frozen fade.
 
 **Expiry moves a card to a holding trash, kept for 24 hours.** The real loss
 mode is being heads-down for 40 minutes, not glancing up as something dies; a
@@ -1207,8 +1239,8 @@ hold more than the cap on their own, nothing more can be evicted: `/api/health`
 reports the sizes, and the band shows a `disk` chip until it fits.
 
 **The last ten expiries a person asked for are undoable with a keystroke** —
-Delete in the lightbox, the menu's expiries — never a TTL running out, which
-would bury them within the second. That covers the case
+Delete in the lightbox, the menu's expiries, a whole zone as one step — never a
+TTL running out, which would bury them within the second. That covers the case
 the trash doesn't: seeing it go and wanting it back immediately.
 
 **Hover pauses decay.** Otherwise things vanish while you're looking at them.
@@ -1302,6 +1334,12 @@ when it stops appearing in what the daemon sends, and a websocket reconnect
 sends nothing for a frame — so a dropped connection reads as the wall spontaneously
 zooming out. Harmless and self-correcting, and indistinguishable from a bug.
 
+**A delamin8r plane flattens without a word.** `overflow` other than
+`visible`, `opacity` below 1, or a `filter` or `backdrop-filter` on any ancestor
+takes a plane out of 3D while its computed `transform-style` still reads
+`preserve-3d` — which is why the menu's card name has no line clamp. In dev the
+band, the menu and the prefs sheet ask `handle.diagnose()` and warn for each.
+
 **Serve images as URLs, never over the socket.** Push paths; let the client
 fetch. That gets HTTP caching and off-main-thread decode via `createImageBitmap`.
 Base64-over-WebSocket hitches every time a render lands.
@@ -1317,6 +1355,10 @@ Base64-over-WebSocket hitches every time a render lands.
 | Native `NSPanel` hosting `WKWebView` | Only if cards ever need to float over the primary display. Correct window semantics, keeps React, ~200 lines of Swift written once. |
 | File System Access API (no daemon) | Rejected. No change notification, so you'd poll on an interval and re-consent every browser restart. The daemon is less code. |
 | `zoneGrid.padding` | Retired. windease insets the cells correctly, but a card's size comes from `side` in world units, so cards do not shrink with their cells: raising it moved the anchors together while the cards stayed put, and the piles collided. `camera.margins[0]` already owns breathing room around the wall, in the one place that survives framing the union. |
+| The lightbox in WebGL, the camera flying to a card | Rejected. WebGL and the DOM disagree on color management, so the handoff to real pixels pops; a 6000×4000 original is 96 MB of VRAM where an `<img>` costs the texture budget nothing; and a GL quad loses the browser's save, copy, drag to Finder and true 1:1. |
+| Depth from `age01` rather than rank | Rejected. Spacing would encode arrival timing: bursts clump and quiet spells leave gaps. |
+| A slow automatic camera drift, for parallax | Rejected. Motion nobody asked for, on a monitor nobody is watching. |
+| weasel's `Timeline` as the band's time control | Rejected. It is a keyframe editor — tracks, a playhead, easing handles — and does not survive contact with a time-range brush. |
 | HTML/React artifacts on the wall, not just images | Rejected. A CSS3D or iframe layer means no depth sorting against WebGL planes, no shared fade, no texture control, and arbitrary JS running on the wall. If HTML artifacts want a wall, they want a different one. |
 | The zone backdrop as tinted glass, shading what sits behind it | Rejected. Dropping the backdrop's `renderOrder = -1` would let it sort by its own z and tint everything behind — but at `BACKDROP_Z` that is the zone's own pile from rank 1 back, not just the strangers, and at a `backdropOpacity` of 0.5 it is a wash rather than a hint. Sparing the home pile needs per-zone masking or a stencil. The `distance` falloff answers the same complaint per-card and tunably, so the plane stays a background. |
 
@@ -1372,15 +1414,13 @@ the whole path an agent would — including the partial-write guard.
 2. ~~Sim mode.~~ **Done.**
 3. Point one agent at `~/transom/inbox/` and live with it for a day. This answers
    arrival rate, which decides whether 4 and 5 are worth building at all.
-4. r3f backend, `stack`, and zones — designed in
-   `docs/superpowers/specs/2026-09-02-webgl-backend-design.md`. Zones arrive
+4. r3f backend, `stack`, and zones — see *Arrangements*. Zones arrive
    here rather than last, because one pile per zone is what `stack` is.
 5. ~~The remaining flat arrangements.~~ **Dropped** with the DOM backend, which
    step 4 made redundant. `[` / `]` still cycles, over a set of one.
-6. Rescue, expiry, trash, undo. **Partly done** — keep, expire-now and a
-   one-deep undo ship with the right-click menu; the capacity bound and the
-   reserved band do not. See
-   `docs/superpowers/specs/2026-09-05-context-menu-and-rescue-design.md`.
+6. Rescue, expiry, trash, undo. **Partly done** — pinning, expire-now and a
+   ten-deep undo ship with the right-click menu; the capacity bound and the
+   reserved band do not. See *Rescue, expiry, and the trash*.
 7. Arrival motion. An artifact that just landed looks exactly like one that has
    been up an hour, minus its age chip. `bloom` (*Entry behavior is a separate
    axis*) is the designed answer but pulls the other way — it exists to make an
@@ -1391,16 +1431,15 @@ the whole path an agent would — including the partial-write guard.
    wearing `▶ 0:12` and play in the lightbox. The call the design wanted made
    first was whether a card may *move*, and it went against: forty looping
    videos is a different object from forty stills, so the card stays a still
-   and only the lightbox plays. Designed in
-   `docs/superpowers/specs/2026-09-19-video-artifacts-design.md`.
+   and only the lightbox plays. See *Ingest contract*.
 9. ~~A `mesh` kind.~~ **Done.** `.glb` and `.stl` land as a rendered
    three-quarter view on a transparent card wearing `⬡`, and open into a
    lightbox that orbits the real model. The card is a poster and not geometry:
    the quad pipeline — LOD, fade, depth sort, texture budget — assumes a
    picture, and a card holding a model opts out of all of it at once. The wall
    lights every model itself, so two are in the same room; the meta line reports
-   the format and the file size rather than a triangle count. Designed in
-   `docs/superpowers/specs/2026-09-20-mesh-artifacts-design.md`.
+   the format and the file size rather than a triangle count. See *Ingest
+   contract*.
 10. ~~Remote senders and a bounded disk.~~ **Done.** See *Remote senders* and
     *Rescue, expiry, and the trash*.
 11. Split the files that grew past a few hundred lines: `server/store.ts`
