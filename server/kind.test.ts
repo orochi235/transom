@@ -54,11 +54,11 @@ describe('kindOf', () => {
 describe('bin/transom agrees about what the wall holds', () => {
   it('lists exactly the extensions kindOf accepts', () => {
     const script = readFileSync(
-      fileURLToPath(new URL('../bin/transom', import.meta.url)),
+      fileURLToPath(new URL('../libexec/send.sh', import.meta.url)),
       'utf8',
     )
     const line = script.match(/^held_ext="([^"]*)"$/m)
-    expect(line, 'held_ext not found in bin/transom').not.toBe(null)
+    expect(line, 'held_ext not found in libexec/send.sh').not.toBe(null)
     const fromScript = line![1]!.split(/\s+/).filter(Boolean).sort()
     expect(fromScript).toEqual([...HELD_EXT].map((e) => e.slice(1)).sort())
   })
@@ -70,11 +70,11 @@ describe('bin/transom agrees about what the wall holds', () => {
 describe('bin/transom knows which held extensions need ffmpeg', () => {
   it('names a subset of what the wall holds', () => {
     const script = readFileSync(
-      fileURLToPath(new URL('../bin/transom', import.meta.url)),
+      fileURLToPath(new URL('../libexec/send.sh', import.meta.url)),
       'utf8',
     )
     const line = script.match(/^video_ext="([^"]*)"$/m)
-    expect(line, 'video_ext not found in bin/transom').not.toBe(null)
+    expect(line, 'video_ext not found in libexec/send.sh').not.toBe(null)
     const video = line![1]!.split(/\s+/).filter(Boolean)
     expect(video.length).toBeGreaterThan(0)
     for (const ext of video) expect(kindOf(`/transom/inbox/z/a.${ext}`)).toBe('video')
@@ -82,7 +82,7 @@ describe('bin/transom knows which held extensions need ffmpeg', () => {
 
   it('names every video extension, so none is sent to a machine that cannot poster it', () => {
     const script = readFileSync(
-      fileURLToPath(new URL('../bin/transom', import.meta.url)),
+      fileURLToPath(new URL('../libexec/send.sh', import.meta.url)),
       'utf8',
     )
     const video = script.match(/^video_ext="([^"]*)"$/m)![1]!.split(/\s+/).filter(Boolean).sort()
