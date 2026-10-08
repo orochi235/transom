@@ -53,6 +53,8 @@ export function ImageLoupe({
   return (
     <TrialLoupe
       enabled={false}
+      diameter={420}
+      shape="square"
       hostRef={host}
       source={source}
       onLens={(lens) => onShown(lens !== null)}

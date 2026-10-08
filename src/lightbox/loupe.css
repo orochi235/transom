@@ -17,6 +17,10 @@
   background: var(--scrim);
 }
 
+.lightbox .lk-loupe--square {
+  border-radius: 24px;
+}
+
 .lightbox .lk-loupe__canvas {
   display: block;
   width: 100%;
