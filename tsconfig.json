@@ -17,7 +17,10 @@
       "@shared/*": ["./shared/*"],
       "windease": ["../windease/src/index.ts"],
       "delamin8r": ["../delamin8r/src/index.ts"],
-      "delamin8r/react": ["../delamin8r/src/react.ts"]
+      "delamin8r/react": ["../delamin8r/src/react.ts"],
+      // Sibling source finds react from its own tree, which may have none: vite dedupes it, tsc needs this.
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"]
     }
   },
   "include": ["src", "server", "shared", "tools", "vite.config.ts", "vitest.config.ts"]
