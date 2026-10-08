@@ -4,7 +4,7 @@ import { basename, join } from 'node:path'
 import { config } from './config.ts'
 import { type Hued, parseHued } from '../shared/hued.ts'
 
-const zonesDir = join(config.root, 'zones')
+const zonesDir = config.zones
 
 /**
  * A color per zone, taken from the `.hued` file of the project the zone's

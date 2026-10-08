@@ -8,7 +8,7 @@ import { reap, type ReapDeps } from './reap.ts'
 let root: string
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), 'transom-reap-'))
-  for (const d of ['inbox/z', '.cache', 'trash', 'answers', 'marks/waiting', '.incoming', 'logs'])
+  for (const d of ['inbox/z', '.cache', 'trash', 'answers', 'marks/waiting', '.incoming', 'logs', 'zones'])
     await mkdir(join(root, d), { recursive: true })
 })
 afterEach(async () => {
@@ -22,7 +22,7 @@ function deps(over: Partial<ReapDeps> = {}): ReapDeps {
     dirs: {
       inbox: join(root, 'inbox'), cache: join(root, '.cache'), trash: join(root, 'trash'),
       answers: join(root, 'answers'), marks: join(root, 'marks'), incoming: join(root, '.incoming'),
-      logs: join(root, 'logs'),
+      logs: join(root, 'logs'), zones: join(root, 'zones'),
     },
     limits: { trashMs: 86_400_000, trashMaxBytes: 1000, wallMaxBytes: 1000, logMaxBytes: 100, answersMs: 86_400_000, incomingMs: 3_600_000 },
     inUse: () => ({ ids: new Set(), caches: new Set() }),
@@ -89,6 +89,25 @@ describe('reap', () => {
 
     const tight = await reap({ ...d, evictable: () => [], limits: { ...d.limits, wallMaxBytes: 100 } })
     expect(tight.over).toBe(true)
+  })
+
+  it('removes empty zone folders and records for zones with no folder, once a day stale', async () => {
+    await mkdir(join(root, 'inbox', 'busy'))
+    await writeFile(join(root, 'inbox', 'busy', 'card.png'), 'x')
+    await mkdir(join(root, 'inbox', 'idle'))
+    await writeFile(join(root, 'zones', 'busy.json'), '{}')
+    await writeFile(join(root, 'zones', 'idle.json'), '{}')
+    await writeFile(join(root, 'zones', 'gone.json'), '{}')
+
+    await reap(deps())
+    expect(existsSync(join(root, 'inbox', 'idle'))).toBe(true)
+    expect(existsSync(join(root, 'zones', 'gone.json'))).toBe(true)
+
+    await reap(deps(), later(25))
+    expect(existsSync(join(root, 'inbox', 'busy', 'card.png'))).toBe(true)
+    expect(existsSync(join(root, 'inbox', 'idle'))).toBe(false)
+    expect(existsSync(join(root, 'zones', 'busy.json'))).toBe(true)
+    expect(existsSync(join(root, 'zones', 'gone.json'))).toBe(false)
   })
 
   it('rotates every log over the cap', async () => {

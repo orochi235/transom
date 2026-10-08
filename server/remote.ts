@@ -94,9 +94,9 @@ export function mountRemote(
         .map((a: object) => ({ ...a, path: dest }))
     await mkdir(join(config.inbox, zone), { recursive: true })
     if (typeof zoneRoot === 'string' && zoneRoot !== '') {
-      await mkdir(join(config.root, 'zones'), { recursive: true })
+      await mkdir(config.zones, { recursive: true })
       const record = typeof hued === 'string' ? { root: zoneRoot, hued } : { root: zoneRoot }
-      await save(join(config.root, 'zones', `${zone}.json`), `${JSON.stringify(record)}\n`)
+      await save(join(config.zones, `${zone}.json`), `${JSON.stringify(record)}\n`)
     }
     // The sidecar before the image: the image arriving is what ingest triggers on.
     await save(`${dest}.transom.json`, `${JSON.stringify(stamp)}\n`)

@@ -18,6 +18,7 @@ export const config = {
   /** Drawings sent back from the lightbox, one composite and one record per
    *  artifact. Beside the answers for the same reason. */
   marks: join(root, 'marks'),
+  zones: join(root, 'zones'),
   port: DAEMON_PORT,
   ttlMs: parseDuration(process.env.TRANSOM_TTL ?? '8h') ?? 28_800_000,
   trashMs: parseDuration(process.env.TRANSOM_TRASH_TTL ?? '24h') ?? 86_400_000,

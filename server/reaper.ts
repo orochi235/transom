@@ -1,4 +1,4 @@
-import { copyFile, lstat, readdir, rm, truncate } from 'node:fs/promises'
+import { copyFile, lstat, readdir, rm, rmdir, truncate } from 'node:fs/promises'
 import type { Stats } from 'node:fs'
 import { join } from 'node:path'
 
@@ -54,6 +54,20 @@ export async function pruneByAge(
   for (const e of await entries(dir, keep)) {
     if (e.at >= now - maxAgeMs) continue
     if (await tryRm(e.path)) gone++
+  }
+  return gone
+}
+
+/** Removes each empty top-level directory last touched before `now - maxAgeMs`.
+ *  `rmdir` refuses a directory a send has just written into, so a race with
+ *  `mkdir -p` costs nothing but a skipped pass. */
+export async function pruneEmptyDirs(dir: string, maxAgeMs: number, now: number): Promise<string[]> {
+  const gone: string[] = []
+  for (const name of await readdir(dir).catch(() => [] as string[])) {
+    const path = join(dir, name)
+    const st = await lstat(path).catch(() => null)
+    if (!st?.isDirectory() || touchedAt(st) >= now - maxAgeMs) continue
+    if (await rmdir(path).then(() => true, () => false)) gone.push(name)
   }
   return gone
 }

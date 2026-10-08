@@ -1222,6 +1222,7 @@ with a variable can be set in the daemon's environment.
 | `trash/` | Delete what has been there longer than 24 hours, then the oldest until it is under 10 GB. | `TRANSOM_TRASH_TTL`, `TRANSOM_TRASH_MAX` |
 | `.cache` | Delete a thumbnail or poster no card uses, once it is an hour old: ingest writes it before the store holds the card. | — |
 | `answers/` | Delete an answer no CLI collected within 24 hours. | — |
+| `inbox/<zone>/`, `zones/<zone>.json` | Remove a zone folder that has sat empty for 24 hours, then the record of any zone left without a folder. The next send recreates both. | — |
 | `.incoming/` | Delete a remote upload cut off partway, after an hour. | — |
 | `marks/` | Delete records and drawings for cards no longer on the wall, after the trash's 24 hours. `marks/remote/` is the hook's, and it prunes that itself. | — |
 | `~/.local/state/transom/*.log` | Over 25 MB, copy to `<name>.1` and truncate in place. | `TRANSOM_LOG_MAX` |
@@ -1367,6 +1368,11 @@ Base64-over-WebSocket hitches every time a render lands.
 - **Arrival rate.** Gates everything downstream. At 3/hour there is no packing
   problem, no memory problem, no zones, and the whole arrangement layer is
   decoration. At 200/hour the wall is a blur and nothing reads at any depth.
+  Measured from the daemon log, Sep 7 – Oct 8 2026: 18,816 arrivals, about 25
+  an hour averaged over the clock, with a busiest hour of at least 74 (read off
+  the trash's mtimes, so live cards are missing from it). Three zones — `astv`,
+  `weasel`, `brick-icons` — sent 59% of them. The log's lines carry a
+  timestamp from Oct 8, so peaks can now be read directly rather than bounded.
 - **Does anything on the wall have thickness?** Every primitive is a flat plane
   today — cards, zone outlines, labels — while a pile occupies a volume many
   times the wall's own height. The `mesh` kind arrived and did *not* settle
@@ -1412,8 +1418,8 @@ the whole path an agent would — including the partial-write guard.
 
 1. ~~Daemon + snapshot-on-connect + a first arrangement.~~ **Done.**
 2. ~~Sim mode.~~ **Done.**
-3. Point one agent at `~/transom/inbox/` and live with it for a day. This answers
-   arrival rate, which decides whether 4 and 5 are worth building at all.
+3. ~~Point one agent at `~/transom/inbox/` and live with it for a day.~~ **Done**
+   — every agent has sent for a month; see *Arrival rate* under *Open questions*.
 4. r3f backend, `stack`, and zones — see *Arrangements*. Zones arrive
    here rather than last, because one pile per zone is what `stack` is.
 5. ~~The remaining flat arrangements.~~ **Dropped** with the DOM backend, which

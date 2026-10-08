@@ -14,6 +14,7 @@ export function startReaper(ready: Promise<void>, onDisk: (d: Disk) => void): vo
         dirs: {
           inbox: config.inbox, cache: config.cache, trash: config.trash, answers: config.answers,
           marks: config.marks, incoming: config.incoming, logs: config.logs,
+          zones: config.zones,
         },
         limits: config,
         inUse: store.inUse,
