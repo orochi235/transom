@@ -477,7 +477,7 @@
 /* There is another take this way. Drawn only where one exists, so the pair
    never points at nothing, and only for a group — an ordinary card's arrows page
    the wall, which is the whole window and needs no hint. */
-.lightbox__page {
+.lightbox__step {
   position: fixed;
   z-index: 101;
   top: 50%;
@@ -492,23 +492,23 @@
   transition: opacity 120ms ease-out;
 }
 
-.lightbox__page:hover,
-.lightbox__page:focus-visible {
+.lightbox__step:hover,
+.lightbox__step:focus-visible {
   opacity: 1;
 }
 
-.lightbox__page--prev {
+.lightbox__step--prev {
   left: 0;
   clip-path: polygon(100% 0, 100% 100%, 0 50%);
 }
 
-.lightbox__page--next {
+.lightbox__step--next {
   right: 0;
   clip-path: polygon(0 0, 0 100%, 100% 50%);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lightbox__page {
+  .lightbox__step {
     transition: none;
   }
 }

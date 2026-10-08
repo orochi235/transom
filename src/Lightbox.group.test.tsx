@@ -79,12 +79,12 @@ describe('a group in the lightbox', () => {
 
   it('draws a triangle only on a side that has a take', async () => {
     const first = await draw(group([take('t1'), take('t2')]))
-    expect(first).toContain('lightbox__page--next')
-    expect(first).not.toContain('lightbox__page--prev')
+    expect(first).toContain('lightbox__step--next')
+    expect(first).not.toContain('lightbox__step--prev')
 
     const only = await draw(group([take('t1')]))
-    expect(only).not.toContain('lightbox__page--next')
-    expect(only).not.toContain('lightbox__page--prev')
+    expect(only).not.toContain('lightbox__step--next')
+    expect(only).not.toContain('lightbox__step--prev')
   })
 
   it('draws the ways out the take offers, and nothing when it offers none', async () => {
@@ -116,6 +116,6 @@ describe('a group in the lightbox', () => {
     const { takes: _none, kind: _group, ...card } = group([take('t1')])
     const html = await draw({ ...card, question: 'what is wrong with it?' })
     expect(html).toContain('what is wrong with it?')
-    expect(html).not.toContain('lightbox__page')
+    expect(html).not.toContain('lightbox__step')
   })
 })

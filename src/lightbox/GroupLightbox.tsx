@@ -122,7 +122,7 @@ export function GroupLightbox({
       {at > 0 && (
         <button
           type="button"
-          className="lightbox__page lightbox__page--prev"
+          className="lightbox__step lightbox__step--prev"
           aria-label="Previous take"
           onClick={(e) => {
             e.stopPropagation()
@@ -133,7 +133,7 @@ export function GroupLightbox({
       {at < takes.length - 1 && (
         <button
           type="button"
-          className="lightbox__page lightbox__page--next"
+          className="lightbox__step lightbox__step--next"
           aria-label="Next take"
           onClick={(e) => {
             e.stopPropagation()
