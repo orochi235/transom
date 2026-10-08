@@ -383,9 +383,9 @@ Holding Alt over a picture in the lightbox raises a square lens that follows
 the pointer. It shows the picture's own pixels, unsmoothed, so a render fitted
 down to the window magnifies into its real detail rather than the screen's.
 Alt+S switches it to smoothing between those pixels and back, and the choice
-is remembered per browser. A pill in the top-left corner says to hold Alt,
-and which mode is on while the lens is up.
-While it is up the wheel sets its magnification instead of zooming the
+is remembered per browser; an SVG has no pixels to choose between and is
+redrawn sharp at the lens's scale instead. A pill in the top-left corner says
+to hold Alt, and which mode is on while the lens is up. While it is up the wheel sets its magnification instead of zooming the
 picture, and the meta row reads the hex color under the pointer. Hold only:
 there is no key that leaves it on. Pages, videos and meshes do not get one,
 and it is off while marking up.
@@ -395,9 +395,11 @@ and it is off while marking up.
   holding the picture at its natural size, made the first time the lens reads
   it, with the picture's on-screen box as where it sits. The lens's two rules
   are copied into `loupe.css`, for the reason `markup.css` copies its one.
-- **The smooth lens draws itself.** labkit's canvas-source lens turns image
-  smoothing off with no switch, so smooth mode passes `render` and draws the
-  held canvas through the lens camera; the source still answers the hex.
+- **The smooth and vector lenses draw themselves.** labkit's canvas-source
+  lens turns image smoothing off with no switch, so both pass `render` and
+  draw through the lens camera — smooth the held canvas, vector the `<img>`
+  itself, which Chrome rasterizes afresh at the size it is drawn. The source
+  still answers the hex.
 - `node tools/loupe-check.mjs` checks it in a headless browser against a
   scratch daemon.
 
@@ -835,12 +837,21 @@ at the ingest boundary; everything else about a take — its question, its
 card can carry too.
 
 **An artifact is a picture, a page, a video or a mesh.** `.png .jpg .jpeg .webp
-.gif .avif .tiff` are pictures; `.html` and `.htm` are pages; `.mp4 .m4v .mov
+.gif .avif .tiff .svg` are pictures; `.html` and `.htm` are pages; `.mp4 .m4v .mov
 .webm` are videos; `.glb` and `.stl` are meshes. Anything else is skipped
 silently, which is also what keeps the sidecar sitting beside every artifact
 from being ingested as one. A `.gltf` is refused at the send rather than held:
 it is a manifest pointing at sibling `.bin` and texture files, and a send
 copies one file.
+
+**An SVG is a picture that is drawn rather than stored.** Its thumbnail is
+rasterized at whatever density brings its long edge to the cache's, since
+sharp draws one at its declared size and the resize never enlarges. Its size
+on the card is the daemon's measurement, not Chrome's, which reports an SVG
+with only a `viewBox` as 300×150. The loupe redraws it at the lens's scale
+rather than enlarging pixels. `/orig` serves every original under a `sandbox`
+CSP: an SVG or a page opened there is a document on the wall's own origin, and
+would otherwise be able to script every route the wall has.
 
 **Only a picture has pixels of its own, so the daemon gives the other three
 some.** `server/poster.ts` is the one step they go through: headless Chrome

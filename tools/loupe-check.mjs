@@ -6,7 +6,7 @@
 //   node tools/loupe-check.mjs        (LOUPE_PLAYWRIGHT=<path> if not global,
 //                                      LOUPE_SHOT=<png> to keep the smooth lens)
 import { spawn } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import sharp from 'sharp'
@@ -37,14 +37,21 @@ async function checker(path) {
   await sharp(px, { raw: { width: w, height: h, channels: 3 } }).png().toFile(path)
 }
 
-/** The first card the daemon reports, once it has ingested one. */
-async function firstItem() {
+/** A drawing with only a viewBox, 3:1, split red and blue along a diagonal.
+ *  At its declared 60×20 a pixel lens would enlarge its edge into a ramp. */
+const DRAWING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 20">
+  <rect width="60" height="20" fill="#0000ff"/>
+  <polygon points="0,0 60,20 0,20" fill="#ff0000"/>
+</svg>`
+
+/** The card the daemon reports in `zone`, once it has ingested it. */
+async function itemIn(zone) {
   for (let tries = 0; tries < 60; tries++) {
     const item = await new Promise((resolve) => {
       const ws = new WebSocket(`ws://localhost:${DAEMON}/ws`)
       ws.onmessage = (e) => {
         ws.close()
-        resolve(JSON.parse(e.data).items?.[0] ?? null)
+        resolve(JSON.parse(e.data).items?.find((i) => i.zone === zone) ?? null)
       }
       ws.onerror = () => resolve(null)
     })
@@ -52,6 +59,24 @@ async function firstItem() {
     await sleep(500)
   }
   throw new Error('the daemon never reported the picture')
+}
+
+/** How many rows of a PNG put their red-to-blue edge at a column no row above
+ *  did. A redrawn diagonal moves on nearly every row; a bitmap enlarged from
+ *  60×20 holds one column for a whole block of rows, then jumps. */
+async function edgeSteps(png) {
+  const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true })
+  const seen = new Set()
+  for (let y = 0; y < info.height; y++) {
+    for (let x = 0; x < info.width; x++) {
+      const i = (y * info.width + x) * info.channels
+      if (data[i + 2] > data[i]) {
+        seen.add(x)
+        break
+      }
+    }
+  }
+  return seen.size
 }
 
 /** Pure red and pure blue pixels in a PNG, against everything else. */
@@ -81,8 +106,10 @@ const check = (name, ok, detail) => {
 
 try {
   mkdirSync(join(root, 'inbox', 'loupe'), { recursive: true })
+  mkdirSync(join(root, 'inbox', 'vector'), { recursive: true })
   await checker(join(root, 'inbox', 'loupe', 'checker.png'))
-  const item = await firstItem()
+  writeFileSync(join(root, 'inbox', 'vector', 'diagonal.svg'), DRAWING)
+  const item = await itemIn('loupe')
   const { chromium } = await playwright()
   const browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
@@ -126,6 +153,24 @@ try {
   await page.mouse.move(650, 455)
   await sleep(400)
   check('letting go of Alt puts it away', (await page.locator('.lk-loupe, .lightbox__hex').count()) === 0)
+
+  const drawing = await itemIn('vector')
+  check('an SVG lands with its viewBox’s shape', drawing.w === 60 && drawing.h === 20, `${drawing.w}×${drawing.h}`)
+  await page.goto(`http://localhost:${CLIENT}/#/vector/${drawing.id}`, { waitUntil: 'networkidle' })
+  await page.waitForSelector('.lightbox__img--in')
+  await sleep(500)
+  const shown = await page.locator('.lightbox__img').boundingBox()
+  check('the lightbox shows it 3:1, not 300×150', Math.abs(shown.width / shown.height - 3) < 0.05, `${(shown.width / shown.height).toFixed(2)}`)
+  const mid = { x: shown.x + shown.width / 2, y: shown.y + shown.height / 2 }
+  await page.mouse.move(mid.x, mid.y)
+  await page.keyboard.down('Alt')
+  await page.mouse.move(mid.x + 1, mid.y)
+  await sleep(500)
+  check('the cue says vector', (await page.locator('.lightbox__loupeCue').textContent()) === 'vector')
+  const edge = await edgeSteps(await page.screenshot({ clip: { x: mid.x - 45, y: mid.y - 45, width: 90, height: 90 } }))
+  if (process.env.LOUPE_SHOT) await page.screenshot({ path: process.env.LOUPE_SHOT.replace(/\.png$/, '-vector.png'), clip: { x: mid.x - 220, y: mid.y - 220, width: 440, height: 440 } })
+  check('the lens redraws the edge rather than enlarging it', edge > 20, `${edge} edge columns in 90 rows`)
+  await page.keyboard.up('Alt')
   await browser.close()
 } finally {
   // Each in its own group: npx forks the real server, which a plain kill misses.

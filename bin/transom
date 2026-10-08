@@ -93,7 +93,7 @@ esac
 # What the wall holds, matching server/kind.ts — held to it by kind.test.ts.
 # Anything else is never adopted, so accepting it here would produce exactly the
 # silently invisible artifact the ingest contract exists to prevent.
-held_ext="png jpg jpeg webp gif avif tiff html htm mp4 m4v mov webm glb stl"
+held_ext="png jpg jpeg webp gif avif tiff svg html htm mp4 m4v mov webm glb stl"
 # Of those, the ones the daemon needs ffmpeg to turn into a poster frame. A
 # video sent to a machine without it would be adopted by nothing and expired by
 # nothing either, which is the silently invisible artifact this check exists to

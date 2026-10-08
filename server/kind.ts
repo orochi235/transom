@@ -9,7 +9,7 @@ import { extname } from 'node:path'
  */
 export type Kind = 'image' | 'page' | 'video' | 'mesh'
 
-const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.tiff'])
+const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.tiff', '.svg'])
 const PAGE_EXT = new Set(['.html', '.htm'])
 /** The containers Chrome plays. ffmpeg would poster a `.mkv` happily and the
  *  lightbox would then show a dead player, so the wall does not hold one. */

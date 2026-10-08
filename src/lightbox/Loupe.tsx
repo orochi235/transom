@@ -6,7 +6,17 @@ import {
   type LoupeRenderArgs,
 } from '@weasel-js/labkit/loupe'
 import type { Box } from '@/lightbox/Markup.tsx'
+import type { Size } from '@/lightbox/view.ts'
 import '@/lightbox/loupe.css'
+
+/** `pixels` enlarges each pixel into a block, `smooth` interpolates between
+ *  them, and `vector` redraws an SVG at the lens's scale, which has no pixels
+ *  to choose between. */
+export type LensMode = 'pixels' | 'smooth' | 'vector'
+
+/** Whether a picture is drawn rather than stored as pixels, by its URL —
+ *  `/orig` names every original with its own extension. */
+export const isVector = (url: string): boolean => /\.svg$/i.test(url)
 
 /**
  * A pixel lens over the lightbox's picture, shown while Alt is held.
@@ -15,14 +25,13 @@ import '@/lightbox/loupe.css'
  * picture's on-screen box, so a fitted render magnifies into its real pixels
  * rather than the downscaled ones on screen. The canvas is made the first
  * time the lens reads it: most pictures are opened and never peeked at.
- * `smooth` interpolates between those pixels instead of enlarging each one
- * into a block.
  */
 export function ImageLoupe({
   img,
   host,
   box,
-  smooth,
+  natural,
+  mode,
   onShown,
   onColor,
 }: {
@@ -30,23 +39,29 @@ export function ImageLoupe({
   /** The element the lens tracks the pointer across, with `box` in its pixels. */
   host: RefObject<HTMLElement | null>
   box: Box
-  smooth: boolean
+  /** The picture's own size. Not the element's: Chrome reports an SVG with
+   *  only a viewBox as 300×150, whatever shape it is. */
+  natural: Size
+  mode: LensMode
   onShown: (shown: boolean) => void
   onColor: (hex: string) => void
 }) {
   const boxRef = useRef(box)
   boxRef.current = box
+  const naturalRef = useRef(natural)
+  naturalRef.current = natural
   const held = useRef<{ src: string; canvas: HTMLCanvasElement; source: CanvasSource } | null>(null)
 
   const source = useMemo(
     () => () => {
       const el = img.current
-      if (!el?.complete || !el.naturalWidth) return null
+      const { w, h } = naturalRef.current
+      if (!el?.complete || !w || !h) return null
       if (held.current?.src === el.currentSrc) return held.current.source
       const canvas = document.createElement('canvas')
-      canvas.width = el.naturalWidth
-      canvas.height = el.naturalHeight
-      canvas.getContext('2d')?.drawImage(el, 0, 0)
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext('2d')?.drawImage(el, 0, 0, w, h)
       const source = createCanvasSource(canvas, {
         box: () => {
           const b = boxRef.current
@@ -67,9 +82,15 @@ export function ImageLoupe({
       hostRef={host}
       source={source}
       render={
-        smooth
-          ? (args) => <SmoothLens args={args} picture={() => held.current?.canvas ?? null} box={box} />
-          : undefined
+        mode === 'pixels'
+          ? undefined
+          : (args) => (
+              <DrawnLens
+                args={args}
+                picture={() => (mode === 'vector' ? img.current : (held.current?.canvas ?? null))}
+                box={box}
+              />
+            )
       }
       onLens={(lens) => onShown(lens !== null)}
       onColorChange={onColor}
@@ -78,17 +99,18 @@ export function ImageLoupe({
 }
 
 /**
- * The lens's stage drawn with the picture resampled through the magnified
- * camera, at the screen's own density. labkit's pixel lens turns smoothing off
- * and has no switch for it, so the smooth lens draws its own.
+ * The lens's stage with the picture drawn through the magnified camera, at
+ * the screen's own density: the held canvas resampled, or an SVG element,
+ * which Chrome rasterizes afresh at the size it is drawn. labkit's pixel lens
+ * turns smoothing off and has no switch for it, so these draw their own.
  */
-function SmoothLens({
+function DrawnLens({
   args,
   picture,
   box,
 }: {
   args: LoupeRenderArgs
-  picture: () => HTMLCanvasElement | null
+  picture: () => CanvasImageSource | null
   box: Box
 }) {
   const canvas = useRef<HTMLCanvasElement>(null)

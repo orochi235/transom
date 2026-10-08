@@ -12,6 +12,7 @@ import { keptFrom, readStamp, replyFrom } from './sidecar.ts'
 import * as marks from './markup.ts'
 import { ttlMs as wallTtlMs } from './settings.ts'
 import { orientedSize } from './sourceSize.ts'
+import { vectorDensity } from './vectorDensity.ts'
 import { framesOf } from './frames.ts'
 import { posterFor } from './poster.ts'
 import { durationOf } from './probe.ts'
@@ -116,7 +117,8 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
     const meta = await sharp(pixelPath).metadata()
     source = orientedSize(meta)
     frames = framesOf(meta)
-    info = await sharp(pixelPath)
+    const density = meta.format === 'svg' ? vectorDensity(source, config.maxEdge) : undefined
+    info = await sharp(pixelPath, density ? { density } : {})
       .rotate()
       .resize({
         width: config.maxEdge,

@@ -8,6 +8,7 @@ describe('kindOf', () => {
     expect(kindOf('/transom/inbox/z/a.png')).toBe('image')
     expect(kindOf('/transom/inbox/z/a.JPG')).toBe('image')
     expect(kindOf('/transom/inbox/z/a.webp')).toBe('image')
+    expect(kindOf('/transom/inbox/z/a.SVG')).toBe('image')
   })
 
   it('reads a self-contained page', () => {

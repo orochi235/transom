@@ -4,7 +4,7 @@ import { metaOf, statusOf } from '@/lightbox-meta.ts'
 import { actions } from '@/actions.ts'
 import { createQuietGate } from '@/nav/quiet.ts'
 import { Markup, type Box, type MarkedUp } from '@/lightbox/Markup.tsx'
-import { ImageLoupe } from '@/lightbox/Loupe.tsx'
+import { ImageLoupe, isVector } from '@/lightbox/Loupe.tsx'
 import { usePersistedFlag } from '@/usePersistedFlag.ts'
 import {
   barsOf,
@@ -172,7 +172,11 @@ export function ImageLightbox({
   const onLoad = useCallback(() => {
     const el = img.current
     if (!el) return
-    const natural = { w: el.naturalWidth, h: el.naturalHeight }
+    // An SVG's element size is whatever Chrome invents for a missing width or
+    // height; the daemon measured the drawing itself.
+    const natural = isVector(el.currentSrc) && item.w && item.h
+      ? { w: item.w, h: item.h }
+      : { w: el.naturalWidth, h: el.naturalHeight }
     size.current = portOf()
     setImage(natural)
     // Drawing again swaps a held composite back for the original, and the
@@ -182,7 +186,7 @@ export function ImageLightbox({
     // A visible element can take focus, and until the first paint this one is
     // still transparent. Focus is what decides the wheel is ours.
     port.current?.focus()
-  }, [])
+  }, [item.w, item.h])
 
   const startMarking = () => {
     setEased(false)
@@ -202,6 +206,8 @@ export function ImageLightbox({
   // card says what it is holding. Drawing again starts from the original.
   const pending = item.markup?.status === 'pending'
   const src = pending && !marking ? item.markup!.url : item.origUrl
+  const vector = isVector(src)
+  const lens = vector ? 'vector' : smooth ? 'smooth' : 'pixels'
 
   const zoomed = isZoomed(view, image, size.current)
   // How much of the image is off screen, per axis. Null on an axis that fits.
@@ -324,11 +330,11 @@ export function ImageLightbox({
           // Suppressed only once the drag means a pan; at fit the native drag
           // to Finder is the more useful of the two.
           draggable={!zoomed}
-          data-sharp={view.scale > 2 ? '' : undefined}
+          data-sharp={view.scale > 2 && !vector ? '' : undefined}
           onLoad={onLoad}
         />
         {loaded && !marking && (
-          <ImageLoupe img={img} host={port} box={box} smooth={smooth} onShown={setPeeking} onColor={setColor} />
+          <ImageLoupe img={img} host={port} box={box} natural={image} mode={lens} onShown={setPeeking} onColor={setColor} />
         )}
         {/* What a scrollbar says and nothing it does: the image is placed by a
             transform, so there is no scroll offset for a real one to ride on.
@@ -404,7 +410,7 @@ export function ImageLightbox({
       </div>
       {loaded && !marking && (
         <div className="lightbox__loupeCue" aria-hidden="true">
-          {peeking ? `${smooth ? 'smooth' : 'pixels'} · alt+s to switch` : 'hold alt for loupe'}
+          {!peeking ? 'hold alt for loupe' : vector ? 'vector' : `${lens} · alt+s to switch`}
         </div>
       )}
       {marking && (

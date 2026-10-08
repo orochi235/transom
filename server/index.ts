@@ -97,6 +97,11 @@ app.get('/img/:id', (req, res) => {
 app.get('/orig/:id', (req, res) => {
   const path = store.resolveOriginal(idFromOrig(req.params.id))
   if (!path) return void res.sendStatus(404)
+  // An SVG or a page opened at this URL is a document on the wall's own
+  // origin, where a script in it could call every route below. Sandboxed, it
+  // still renders; it just runs nothing and reaches nothing.
+  res.set('Content-Security-Policy', "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:")
+  res.set('X-Content-Type-Options', 'nosniff')
   res.sendFile(path, { dotfiles: 'allow' })
 })
 
