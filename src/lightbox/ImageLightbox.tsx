@@ -5,6 +5,7 @@ import { actions } from '@/actions.ts'
 import { createQuietGate } from '@/nav/quiet.ts'
 import { Markup, type Box, type MarkedUp } from '@/lightbox/Markup.tsx'
 import { ImageLoupe } from '@/lightbox/Loupe.tsx'
+import { usePersistedFlag } from '@/usePersistedFlag.ts'
 import {
   barsOf,
   boxOf,
@@ -69,6 +70,7 @@ export function ImageLightbox({
   const peekingRef = useRef(peeking)
   peekingRef.current = peeking
   const [color, setColor] = useState<string | null>(null)
+  const [smooth, setSmooth] = usePersistedFlag('transom.loupe.smooth', false)
   const port = useRef<HTMLDivElement>(null)
   const img = useRef<HTMLImageElement>(null)
   /** The window size the current view was computed against. Read by the resize
@@ -260,6 +262,11 @@ export function ImageLightbox({
     const middle = { x: size.current.w / 2, y: size.current.h / 2 }
     const step = (by: number) =>
       setView((v) => zoomTo(v, v.scale * by, middle, image, size.current))
+    // By code: on a Mac, Alt turns the S key's `key` into ß.
+    if (e.altKey && e.code === 'KeyS') {
+      e.preventDefault()
+      return setSmooth((on) => !on)
+    }
     if (e.key === '0') {
       e.preventDefault()
       setEased(true)
@@ -321,7 +328,7 @@ export function ImageLightbox({
           onLoad={onLoad}
         />
         {loaded && !marking && (
-          <ImageLoupe img={img} host={port} box={box} onShown={setPeeking} onColor={setColor} />
+          <ImageLoupe img={img} host={port} box={box} smooth={smooth} onShown={setPeeking} onColor={setColor} />
         )}
         {/* What a scrollbar says and nothing it does: the image is placed by a
             transform, so there is no scroll offset for a real one to ride on.
@@ -385,6 +392,7 @@ export function ImageLightbox({
             discard marks
           </button>
         )}
+        {peeking && <span className="lightbox__metaPart">{smooth ? 'smooth' : 'pixels'} · ⌥S</span>}
         {peeking && color && <span className="lightbox__metaPart lightbox__hex">{color}</span>}
         {/* Last in the row: it changes on every wheel notch, and anything after
             a readout that changes width is a control that shifts under the

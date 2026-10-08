@@ -379,10 +379,12 @@ result to the daemon. Pages, videos and meshes have no picture to draw on.
 
 ### The loupe
 
-Holding Alt over a picture in the lightbox raises a round lens that follows the
-pointer. It shows the picture's own pixels, unsmoothed, so a render fitted
-down to the window magnifies into its real detail rather than the screen's;
-while it is up the wheel sets its magnification instead of zooming the
+Holding Alt over a picture in the lightbox raises a square lens that follows
+the pointer. It shows the picture's own pixels, unsmoothed, so a render fitted
+down to the window magnifies into its real detail rather than the screen's.
+Alt+S switches it to smoothing between those pixels and back, and the choice
+is remembered per browser; the meta row says which is on.
+While it is up the wheel sets its magnification instead of zooming the
 picture, and the meta row reads the hex color under the pointer. Hold only:
 there is no key that leaves it on. Pages, videos and meshes do not get one,
 and it is off while marking up.
@@ -392,6 +394,9 @@ and it is off while marking up.
   holding the picture at its natural size, made the first time the lens reads
   it, with the picture's on-screen box as where it sits. The lens's two rules
   are copied into `loupe.css`, for the reason `markup.css` copies its one.
+- **The smooth lens draws itself.** labkit's canvas-source lens turns image
+  smoothing off with no switch, so smooth mode passes `render` and draws the
+  held canvas through the lens camera; the source still answers the hex.
 - `node tools/loupe-check.mjs` checks it in a headless browser against a
   scratch daemon.
 

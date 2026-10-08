@@ -3,7 +3,8 @@
 // is reading the picture's own pixels. Runs its own daemon and page server on
 // spare ports against a scratch root, and deletes the root on the way out.
 //
-//   node tools/loupe-check.mjs        (LOUPE_PLAYWRIGHT=<path> if not global)
+//   node tools/loupe-check.mjs        (LOUPE_PLAYWRIGHT=<path> if not global,
+//                                      LOUPE_SHOT=<png> to keep the smooth lens)
 import { spawn } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -102,6 +103,19 @@ try {
   check('Alt shows the picture’s own pixels', held > 0.95, `${(held * 100).toFixed(1)}% pure`)
   const hex = await page.locator('.lightbox__hex').textContent()
   check('the meta line reads the color under the pointer', hex === '#ff0000' || hex === '#0000ff', hex)
+
+  await page.keyboard.press('KeyS')
+  await page.mouse.move(646, 452)
+  await sleep(300)
+  const smooth = await colors(await page.screenshot({ clip: lens }))
+  if (process.env.LOUPE_SHOT) await page.screenshot({ path: process.env.LOUPE_SHOT, clip: { x: 340, y: 150, width: 600, height: 600 } })
+  check('Alt+S smooths the lens', smooth < 0.5, `${(smooth * 100).toFixed(1)}% pure`)
+  check('the meta line says which', (await page.locator('.lightbox__meta').textContent()).includes('smooth'))
+  await page.keyboard.press('KeyS')
+  await page.mouse.move(645, 452)
+  await sleep(300)
+  const back = await colors(await page.screenshot({ clip: lens }))
+  check('Alt+S again goes back to pixels', back > 0.95, `${(back * 100).toFixed(1)}% pure`)
 
   for (let i = 0; i < 3; i++) await page.mouse.wheel(0, -200)
   await sleep(400)
