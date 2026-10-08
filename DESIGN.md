@@ -383,7 +383,8 @@ Holding Alt over a picture in the lightbox raises a square lens that follows
 the pointer. It shows the picture's own pixels, unsmoothed, so a render fitted
 down to the window magnifies into its real detail rather than the screen's.
 Alt+S switches it to smoothing between those pixels and back, and the choice
-is remembered per browser; the meta row says which is on.
+is remembered per browser. A pill in the top-left corner says to hold Alt,
+and which mode is on while the lens is up.
 While it is up the wheel sets its magnification instead of zooming the
 picture, and the meta row reads the hex color under the pointer. Hold only:
 there is no key that leaves it on. Pages, videos and meshes do not get one,

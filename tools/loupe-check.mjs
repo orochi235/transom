@@ -90,6 +90,7 @@ try {
   await page.waitForSelector('.lightbox__img--in')
   await sleep(500)
 
+  check('the cue says how to raise it', (await page.locator('.lightbox__loupeCue').textContent()) === 'hold alt for loupe')
   const lens = { x: 600, y: 410, width: 90, height: 90 }
   await page.mouse.move(640, 450)
   await sleep(200)
@@ -110,7 +111,7 @@ try {
   const smooth = await colors(await page.screenshot({ clip: lens }))
   if (process.env.LOUPE_SHOT) await page.screenshot({ path: process.env.LOUPE_SHOT, clip: { x: 340, y: 150, width: 600, height: 600 } })
   check('Alt+S smooths the lens', smooth < 0.5, `${(smooth * 100).toFixed(1)}% pure`)
-  check('the meta line says which', (await page.locator('.lightbox__meta').textContent()).includes('smooth'))
+  check('the cue says which', (await page.locator('.lightbox__loupeCue').textContent()).startsWith('smooth'))
   await page.keyboard.press('KeyS')
   await page.mouse.move(645, 452)
   await sleep(300)

@@ -392,7 +392,6 @@ export function ImageLightbox({
             discard marks
           </button>
         )}
-        {peeking && <span className="lightbox__metaPart">{smooth ? 'smooth' : 'pixels'} · ⌥S</span>}
         {peeking && color && <span className="lightbox__metaPart lightbox__hex">{color}</span>}
         {/* Last in the row: it changes on every wheel notch, and anything after
             a readout that changes width is a control that shifts under the
@@ -403,6 +402,11 @@ export function ImageLightbox({
           </span>
         )}
       </div>
+      {loaded && !marking && (
+        <div className="lightbox__loupeCue" aria-hidden="true">
+          {peeking ? `${smooth ? 'smooth' : 'pixels'} · alt+s to switch` : 'hold alt for loupe'}
+        </div>
+      )}
       {marking && (
         <Markup
           src={item.origUrl}
