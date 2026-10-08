@@ -22,9 +22,9 @@
   },
   "dependencies": {
     "@react-three/fiber": "^9.8.1",
-    "@weasel-js/core": "^1.6.1",
-    "@weasel-js/labkit": "^1.6.1",
-    "@weasel-js/ui": "^1.6.1",
+    "@weasel-js/core": "^1.9.0",
+    "@weasel-js/labkit": "^1.9.0",
+    "@weasel-js/ui": "^1.9.0",
     "ajv": "^8.20.0",
     "chokidar": "^5.0.0",
     "delamin8r": "^0.2.1",
