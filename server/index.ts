@@ -24,6 +24,9 @@ import { mountMarks } from './routes/marks.ts'
 import { mountZones } from './routes/zones.ts'
 import { mountDebug } from './routes/debug.ts'
 import { BEAT_MS, type Disk, type ServerMessage } from '@shared/protocol.ts'
+import { stampConsole } from './stamp.ts'
+
+stampConsole()
 
 await settings.load()
 await zones.load()
