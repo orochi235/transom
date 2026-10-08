@@ -1448,9 +1448,9 @@ the whole path an agent would — including the partial-write guard.
    contract*.
 10. ~~Remote senders and a bounded disk.~~ **Done.** See *Remote senders* and
     *Rescue, expiry, and the trash*.
-11. Split the files that grew past a few hundred lines: `server/store.ts`
-    (eviction and the marks bookkeeping can each own a module),
-    `server/index.ts` (the routes into mount functions, as `server/remote.ts`
-    already is) and `bin/transom`.
+11. ~~Split the files that grew past a few hundred lines.~~ **Done** —
+    `server/store/`, `server/routes/`, `src/backends/webgl/`, `src/params/`
+    and `libexec/`. `src/backends/webgl/useWallFrame.ts` stays at 323 lines:
+    the per-frame loop shares too many locals to cut without a context object.
 
 Steps 1–3 are cheap and answer most of the open questions.
