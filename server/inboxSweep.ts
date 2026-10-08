@@ -1,4 +1,5 @@
-import { artifactsIn } from './watchTree.ts'
+import { stat } from 'node:fs/promises'
+import { artifactsIn, SETTLE_MS } from './watchTree.ts'
 
 /**
  * The backstop: whatever is in the inbox and not in the store gets offered
@@ -22,13 +23,21 @@ export interface SweepOptions {
   has: (absPath: string) => boolean
   ignore?: (absPath: string) => boolean
   onFile: (absPath: string) => void
+  /** A file written to within this long is left for a later pass: the sweep
+   *  takes no stability wait of its own, and sharp cannot read half a PNG. */
+  settleMs?: number
 }
 
 /** One pass. Returns how many artifacts it offered. */
 export async function sweepOnce(root: string, opts: SweepOptions): Promise<number> {
+  const settleMs = opts.settleMs ?? SETTLE_MS
   let offered = 0
   for (const abs of await artifactsIn(root)) {
     if (opts.has(abs) || opts.ignore?.(abs)) continue
+    if (settleMs > 0) {
+      const mtimeMs = await stat(abs).then((s) => s.mtimeMs, () => null)
+      if (mtimeMs === null || Date.now() - mtimeMs < settleMs) continue
+    }
     opts.onFile(abs)
     offered++
   }

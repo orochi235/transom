@@ -54,7 +54,7 @@ export interface TreeWatcher {
   close(): Promise<void>
 }
 
-const SETTLE_MS = 400
+export const SETTLE_MS = 400
 const POLL_MS = 50
 // A file still growing after this is something other than a render landing.
 // Give up rather than hold the slot forever; the inbox sweep re-offers it.

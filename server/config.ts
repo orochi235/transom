@@ -39,8 +39,9 @@ export const config = {
    *  argued about. */
   ingestAtOnce: Number(process.env.TRANSOM_INGEST_AT_ONCE ?? 3),
   /** How often the inbox is swept for artifacts the store never took in. The
-   *  watch is an optimization over this, not the other way round. */
-  sweepMs: Number(process.env.TRANSOM_SWEEP_MS ?? 30_000),
+   *  watch is an optimization over this, not the other way round, so this is
+   *  the worst case for an arrival: a pass is one readdir per zone. */
+  sweepMs: Number(process.env.TRANSOM_SWEEP_MS ?? 2_000),
   /** What an arrival at a level that asks for noise plays. */
   alertSound: process.env.TRANSOM_ALERT_SOUND ?? '/System/Library/Sounds/Glass.aiff',
   /** How the daemon opens the wall when something asks to be seen and nothing

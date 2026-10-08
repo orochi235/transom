@@ -9,7 +9,7 @@ import { loadToken, guard } from './auth.ts'
 import { mountRemote } from './remote.ts'
 import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
-import { watchInbox } from './ingest.ts'
+import { describeArrival, watchInbox } from './ingest.ts'
 import { startReaper } from './disk.ts'
 import { groupBadge } from '@shared/groups.ts'
 import { mountMeshView } from './meshview.ts'
@@ -438,17 +438,17 @@ store.startSweeper()
 setInterval(() => {
   void store.recheckSenders().then((news) => news.forEach(announceMarks))
 }, 15_000).unref()
-const inbox = watchInbox((landed) => {
+const inbox = watchInbox((landed, arrival) => {
   const { item } = landed
   if (landed.as === 'take' && !landed.opened) {
-    console.log(`[take] ${item.zone}/${item.id.slice(0, 8)} ${groupBadge(item)}`)
+    console.log(`[take] ${item.zone}/${item.id.slice(0, 8)} ${groupBadge(item)} ${describeArrival(arrival)}`)
     broadcast({ type: 'take', id: item.id, take: landed.take, poster: landed.poster })
     // A group alerts once. The first take's level applies and every append after
     // it lands silently, or a group at `urgent` is one interrupt per render —
     // which is the thing a group exists to stop.
     return
   }
-  console.log(`[arrive] ${item.zone}/${item.id.slice(0, 8)} ${item.w}x${item.h}`)
+  console.log(`[arrive] ${item.zone}/${item.id.slice(0, 8)} ${item.w}x${item.h} ${describeArrival(arrival)}`)
   broadcast({ type: 'arrive', item })
   // After the broadcast: a wall that is already open should be showing the
   // artifact by the time anything asks the screen for attention on its behalf.

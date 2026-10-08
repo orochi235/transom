@@ -28,6 +28,7 @@ describe('sweepOnce', () => {
 
     const n = await sweepOnce(root, {
       has: (p) => p === known,
+      settleMs: 0,
       onFile: (p) => offered.push(p),
     })
 
@@ -39,7 +40,7 @@ describe('sweepOnce', () => {
     await tree(['z/a.png', 'z/b.png'])
     const offered: string[] = []
 
-    const n = await sweepOnce(root, { has: () => true, onFile: (p) => offered.push(p) })
+    const n = await sweepOnce(root, { has: () => true, settleMs: 0, onFile: (p) => offered.push(p) })
 
     expect(offered).toEqual([])
     expect(n).toBe(0)
@@ -53,11 +54,21 @@ describe('sweepOnce', () => {
 
     await sweepOnce(root, {
       has: () => false,
+      settleMs: 0,
       ignore: (p) => p.endsWith('.transom.json'),
       onFile: (p) => offered.push(p),
     })
 
     expect(offered.includes(sidecar)).toBe(false)
+  })
+
+  it('leaves a file still being written for a later pass', async () => {
+    const [fresh] = await tree(['z/fresh.png'])
+    const offered: string[] = []
+
+    expect(await sweepOnce(root, { has: () => false, settleMs: 60_000, onFile: (p) => offered.push(p) })).toBe(0)
+    expect(await sweepOnce(root, { has: () => false, settleMs: 0, onFile: (p) => offered.push(p) })).toBe(1)
+    expect(offered).toEqual([fresh])
   })
 
   it('reads no zone at all from an inbox that is not there', async () => {
@@ -91,6 +102,7 @@ describe('startSweep', () => {
     const offered: string[] = []
     stop = startSweep(root, {
       intervalMs: 30,
+      settleMs: 0,
       has: () => false,
       onFile: (p) => offered.push(p),
     })
@@ -106,7 +118,7 @@ describe('startSweep', () => {
     await writeFile(join(root, 'z', 'a.png'), 'x')
 
     const offered: string[] = []
-    stop = startSweep(root, { intervalMs: 30, has: () => false, onFile: (p) => offered.push(p) })
+    stop = startSweep(root, { intervalMs: 30, settleMs: 0, has: () => false, onFile: (p) => offered.push(p) })
     await sleep(120)
     stop()
     stop = null

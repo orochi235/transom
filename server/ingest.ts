@@ -54,6 +54,27 @@ export type Landed =
   | { as: 'card'; item: WallItem }
   | { as: 'take'; item: WallItem; take: Take; poster: Poster; opened: boolean }
 
+/** Which path brought a file in: the watch, the sweep that backstops it, or
+ *  the scan at startup. A sweep landing is a watch event that went missing. */
+export type Via = 'watch' | 'sweep' | 'start'
+
+export interface Arrival {
+  via: Via
+  /** From the file's mtime to being offered, and from there to landing. Null
+   *  for a file adopted at startup, whose mtime says nothing about latency. */
+  noticedMs: number | null
+  ingestMs: number | null
+}
+
+const secs = (ms: number) => `${(ms / 1000).toFixed(2).padStart(6)}s`
+
+/** The tail of an `[arrive]` line. */
+export function describeArrival(a: Arrival): string {
+  const via = a.via.padEnd(5)
+  if (a.noticedMs === null || a.ingestMs === null) return `via ${via}`
+  return `via ${via} noticed ${secs(a.noticedMs)} ingest ${secs(a.ingestMs)}`
+}
+
 async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null> {
   const kind = kindOf(sourcePath)
   if (kind === null) return null
@@ -253,7 +274,7 @@ async function adopt(sourcePath: string): Promise<Landed | null> {
   return ingest(sourcePath, mtimeMs)
 }
 
-export function watchInbox(onLand: (landed: Landed) => void) {
+export function watchInbox(onLand: (landed: Landed, arrival: Arrival) => void) {
   // Capped because ingest is the daemon's only heavy work: a decode, a resize,
   // a webp encode and a full-resolution re-encode per file. Uncapped, a restart
   // with a full inbox starts all of them at once.
@@ -268,7 +289,7 @@ export function watchInbox(onLand: (landed: Landed) => void) {
   // waits on them, so the reaper never sees a store missing queued cards.
   const adoptions: Promise<void>[] = []
   let collecting = true
-  const take = (sourcePath: string, adopting: boolean) => {
+  const take = (sourcePath: string, adopting: boolean, via: Via) => {
     // Several paths reach the same artifact on purpose: the watch, the
     // adopting scan, the sweep, and the events ingest's own stamp rewrite
     // fires. The store answers by source path, so the rest are dropped here.
@@ -279,8 +300,14 @@ export function watchInbox(onLand: (landed: Landed) => void) {
     const at = Date.now()
     const done = gate(async () => {
       try {
+        const mtimeMs = via === 'start' ? null : await stat(sourcePath).then((s) => s.mtimeMs, () => null)
         const landed = adopting ? await adopt(sourcePath) : await ingest(sourcePath, at)
-        if (landed) onLand(landed)
+        if (landed)
+          onLand(landed, {
+            via,
+            noticedMs: mtimeMs === null ? null : Math.max(0, at - mtimeMs),
+            ingestMs: mtimeMs === null ? null : Date.now() - at,
+          })
         else declined.add(sourcePath)
       } finally {
         inFlight.delete(sourcePath)
@@ -307,7 +334,7 @@ export function watchInbox(onLand: (landed: Landed) => void) {
 
   const watcher = watchTree(config.inbox, {
     ignore: notAnArtifact,
-    onFile: take,
+    onFile: (p, adopting) => take(p, adopting, adopting ? 'start' : 'watch'),
     onGone: (p) => {
       const id = store.forget(p)
       if (id) console.log(`[watch] ${basename(p)} left the inbox; its card is off the wall`)
@@ -324,7 +351,7 @@ export function watchInbox(onLand: (landed: Landed) => void) {
     intervalMs: config.sweepMs,
     has: held,
     ignore: notAnArtifact,
-    onFile: (p) => take(p, true),
+    onFile: (p) => take(p, true, 'sweep'),
   })
 
   return {
