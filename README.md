@@ -41,6 +41,7 @@ In the lightbox a picture can be drawn on — freehand, arrows, boxes, notes —
 and sent back with *No, like this* to the Claude Code session that made it,
 while that session is still running. Until it arrives, or is discarded, the
 card keeps the marks and does not expire.
+Holding Alt over a picture there raises a loupe on its own pixels.
 
 Provenance rides in a `<image>.transom.json` sidecar the daemon folds into the
 image's own metadata: the caption, plus the repo and commit the render ran in.

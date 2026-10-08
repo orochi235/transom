@@ -4,6 +4,7 @@ import { metaOf, statusOf } from '@/lightbox-meta.ts'
 import { actions } from '@/actions.ts'
 import { createQuietGate } from '@/nav/quiet.ts'
 import { Markup, type Box, type MarkedUp } from '@/lightbox/Markup.tsx'
+import { ImageLoupe } from '@/lightbox/Loupe.tsx'
 import {
   barsOf,
   boxOf,
@@ -63,6 +64,11 @@ export function ImageLightbox({
   const [sendFailed, setSendFailed] = useState(false)
   const markingRef = useRef(marking)
   markingRef.current = marking
+  /** Up while Alt is held over the picture. The wheel is the lens's then. */
+  const [peeking, setPeeking] = useState(false)
+  const peekingRef = useRef(peeking)
+  peekingRef.current = peeking
+  const [color, setColor] = useState<string | null>(null)
   const port = useRef<HTMLDivElement>(null)
   const img = useRef<HTMLImageElement>(null)
   /** The window size the current view was computed against. Read by the resize
@@ -108,6 +114,7 @@ export function ImageLightbox({
       // Swallowed even while disarmed, or the tail reaches the wall's window
       // listener and steps a rung back out from under the image that opened.
       e.stopPropagation()
+      if (peekingRef.current) return
       const fresh = gate.feed(e.timeStamp)
       if (fresh) armed.current = true
       if (!armed.current) return
@@ -313,6 +320,9 @@ export function ImageLightbox({
           data-sharp={view.scale > 2 ? '' : undefined}
           onLoad={onLoad}
         />
+        {loaded && !marking && (
+          <ImageLoupe img={img} host={port} box={box} onShown={setPeeking} onColor={setColor} />
+        )}
         {/* What a scrollbar says and nothing it does: the image is placed by a
             transform, so there is no scroll offset for a real one to ride on.
             Drag, scroll and the keys are how it moves. */}
@@ -375,6 +385,7 @@ export function ImageLightbox({
             discard marks
           </button>
         )}
+        {peeking && color && <span className="lightbox__metaPart lightbox__hex">{color}</span>}
         {/* Last in the row: it changes on every wheel notch, and anything after
             a readout that changes width is a control that shifts under the
             hand. */}

@@ -377,6 +377,24 @@ result to the daemon. Pages, videos and meshes have no picture to draw on.
   drawing is for a session, `marks/waiting/<session>` exists: the hook stats it
   on every tool call and only asks the daemon when it is there.
 
+### The loupe
+
+Holding Alt over a picture in the lightbox raises a round lens that follows the
+pointer. It shows the picture's own pixels, unsmoothed, so a render fitted
+down to the window magnifies into its real detail rather than the screen's;
+while it is up the wheel sets its magnification instead of zooming the
+picture, and the meta row reads the hex color under the pointer. Hold only:
+there is no key that leaves it on. Pages, videos and meshes do not get one,
+and it is off while marking up.
+
+- **It is labkit's `TrialLoupe`** with a canvas source and `enabled={false}`,
+  hosted outside a trial the way the markup overlay is. The source is a canvas
+  holding the picture at its natural size, made the first time the lens reads
+  it, with the picture's on-screen box as where it sits. The lens's two rules
+  are copied into `loupe.css`, for the reason `markup.css` copies its one.
+- `node tools/loupe-check.mjs` checks it in a headless browser against a
+  scratch daemon.
+
 ### Groups: many pictures, one card
 
 An agent that renders sixty parts wants a verdict on each. Sixty cards is spam
