@@ -12,10 +12,10 @@ const png = () =>
 
 /** `config` reads the environment once at import, so each case gets its own
  *  root and its own module graph. */
-async function bootDaemon(root: string) {
+async function bootDaemon(root: string, sweepMs = 40) {
   vi.resetModules()
   vi.stubEnv('TRANSOM_ROOT', root)
-  vi.stubEnv('TRANSOM_SWEEP_MS', '40')
+  vi.stubEnv('TRANSOM_SWEEP_MS', String(sweepMs))
   vi.stubEnv('TRANSOM_INGEST_AT_ONCE', '1')
   await mkdir(join(root, 'inbox'), { recursive: true })
   return await import('./ingest.ts')
@@ -65,6 +65,38 @@ describe('watchInbox', () => {
     expect(arrived[0]!.zone).toBe('brick-icons')
     expect(arrived[0]!.w).toBe(8)
   })
+
+  it('keeps the watch alive beside the zone-color watcher', async () => {
+    // Zone colors watch every recorded project's `.hued`, most of them gone.
+    // On fsevents that once silenced the inbox watch, leaving only the sweep.
+    // No sweep in time to cover for it: only the watch can land these.
+    const { watchInbox } = await bootDaemon(root, 600_000)
+    const { watchZoneColors } = await import('./zoneColors.ts')
+    await mkdir(join(root, 'zones'), { recursive: true })
+    for (let i = 0; i < 40; i++) {
+      const proj = join(root, 'projects', `p${i}`)
+      if (i % 4 === 0) await mkdir(proj, { recursive: true })
+      await writeFile(join(root, 'zones', `p${i}.json`), JSON.stringify({ root: proj }))
+    }
+    const stopColors = watchZoneColors(() => {})
+    const arrived: string[] = []
+    const w = watchInbox((_landed, arrival) => arrived.push(arrival.via))
+    stop = async () => {
+      stopColors()
+      await w.close()
+    }
+    await w.ready
+    await mkdir(join(root, 'inbox', 'z'), { recursive: true })
+
+    const bytes = await png()
+    for (let i = 0; i < 3; i++) {
+      // What every send does before its image lands.
+      await writeFile(join(root, 'zones', 'z.json'), JSON.stringify({ root: join(root, 'projects', 'p0') }))
+      await writeFile(join(root, 'inbox', 'z', `a${i}.png`), bytes)
+      await vi.waitFor(() => expect(arrived).toHaveLength(i + 1), { timeout: 4000 })
+    }
+    expect(arrived).toEqual(['watch', 'watch', 'watch'])
+  }, 20_000)
 
   it('reports it once however many times the file is touched', async () => {
     // Ingest rewrites the source to stamp it and then restores its mtime, so

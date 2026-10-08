@@ -87,7 +87,9 @@ export function watchZoneColors(
       // No zones directory yet. Watching it still picks one up when it appears.
     }
     await watcher?.close()
-    watcher = chokidar.watch([zonesDir, ...roots], { ignoreInitial: true })
+    // Polled: on macOS these watches share libuv's one FSEvents stream with the
+    // inbox watch, and rebuilding them silenced it (watchInbox.test.ts).
+    watcher = chokidar.watch([zonesDir, ...roots], { ignoreInitial: true, usePolling: true, interval: 1000 })
     watcher.on('all', () => void rescan())
   }
 
