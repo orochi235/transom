@@ -1,4 +1,4 @@
-enlist: 4
+enlist: 6
 plugin: node
 run: npm run typecheck && npm test
 # No `runner:`: its reporter goes on the end of `run:`, so `run:` must be one
