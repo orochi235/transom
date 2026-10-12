@@ -14,10 +14,10 @@
 // to, so pairing with a different wall sends again. Each run drops the markers
 // of files the inbox no longer holds.
 
-import { existsSync, mkdirSync, openAsBlob, readFileSync, readdirSync, rmSync, statSync,
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync,
          writeFileSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
-import { homedir, hostname } from 'node:os'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { homedir, hostname, tmpdir } from 'node:os'
 import path from 'node:path'
 import { PROTOCOL } from '../shared/remote.ts'
 import { HELD_EXT } from '../server/kind.ts'
@@ -152,6 +152,33 @@ function sidecarFor({ zone, name, file }) {
   return Buffer.from(JSON.stringify(side)).toString('base64')
 }
 
+// As large as libexec/remote.sh lets one be: the wall resets the connection
+// on a header block much past 16 KB rather than answering.
+const SIDECAR_MAX = 12000
+
+// curl, as `transom post` uses, and not fetch: macOS can refuse node the local
+// network while curl still reaches the wall. The token rides in a file because
+// argv shows in `ps`.
+const tmp = dry ? '' : mkdtempSync(path.join(tmpdir(), 'transom-sync-'))
+process.on('exit', () => tmp && rmSync(tmp, { recursive: true, force: true }))
+if (!dry)
+  writeFileSync(path.join(tmp, 'headers'), `Authorization: Bearer ${env.TRANSOM_TOKEN}\nX-Transom-Protocol: ${PROTOCOL}\n`, { mode: 0o600 })
+
+/** The status and body of one upload, or null when the wall did not answer. */
+function send(item, side) {
+  const body = path.join(tmp, 'reply')
+  const ran = spawnSync('curl', [
+    '-gsS', '--connect-timeout', '3', '--speed-limit', '1', '--speed-time', '30',
+    '-H', `@${path.join(tmp, 'headers')}`, '-H', `X-Transom-Name: ${suffixOf(item.name)}`,
+    '-H', `X-Transom-Sidecar: ${side}`,
+    '-o', body, '-w', '%{http_code}', '-X', 'POST', '-T', item.file, `${wall}/api/inbox/${item.zone}`,
+  ], { encoding: 'utf8' })
+  if (ran.status !== 0) return null
+  const text = existsSync(body) ? readFileSync(body, 'utf8') : ''
+  rmSync(body, { force: true })
+  return { status: Number(ran.stdout), text }
+}
+
 const width = String(work.length).length
 let failed = 0
 for (const [i, item] of work.entries()) {
@@ -160,32 +187,25 @@ for (const [i, item] of work.entries()) {
     console.log(at)
     continue
   }
-  let res
-  try {
-    res = await fetch(`${wall}/api/inbox/${item.zone}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.TRANSOM_TOKEN}`,
-        'X-Transom-Protocol': String(PROTOCOL),
-        'X-Transom-Name': suffixOf(item.name),
-        'X-Transom-Sidecar': sidecarFor(item),
-      },
-      body: await openAsBlob(item.file),
-    })
-  } catch {
-    // What is left would fail the same way, and a rerun sends only that.
-    fail(`the wall at ${wall} is not answering, with ${work.length - i} left to send`, 6)
-  }
-  if (!res.ok) {
+  const side = sidecarFor(item)
+  if (side.length > SIDECAR_MAX) {
     failed++
-    console.error(`${at}  refused (HTTP ${res.status}): ${(await res.text()).trim()}`)
+    console.error(`${at}  not sent: its sidecar is too long for a remote wall (${side.length} bytes, ${SIDECAR_MAX} at most)`)
     continue
   }
-  const { path: landed } = await res.json()
+  const res = send(item, side)
+  // What is left would fail the same way, and a rerun sends only that.
+  if (!res) fail(`the wall at ${wall} is not answering, with ${work.length - i} left to send`, 6)
+  if (res.status !== 200) {
+    failed++
+    console.error(`${at}  refused (HTTP ${res.status}): ${res.text.trim()}`)
+    continue
+  }
+  const { path: landed } = JSON.parse(res.text)
   mkdirSync(path.join(synced, item.zone), { recursive: true })
   writeFileSync(marker(item.zone, item.name), `${wall}\t${landed}\n`)
   console.log(at)
 }
 if (dry) console.log(`would send ${work.length} to ${wall}`)
-else console.log(`sent ${work.length - failed} to ${wall}${failed ? `, ${failed} refused` : ''}`)
+else console.log(`sent ${work.length - failed} to ${wall}${failed ? `, ${failed} not sent` : ''}`)
 process.exit(failed ? 1 : 0)
