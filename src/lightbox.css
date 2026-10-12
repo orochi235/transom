@@ -53,7 +53,6 @@
   transform: translate(var(--lb-x), var(--lb-y)) scale(var(--lb-scale));
   cursor: default;
   opacity: 0;
-  transition: opacity 180ms ease-out;
   outline: 2px solid var(--lb-accent, var(--accent));
   /* Scaled with the image, so the keyline does not thicken as you zoom out. */
   outline-offset: 6px;
@@ -63,8 +62,12 @@
     0 0 90px 24px color-mix(in srgb, var(--lb-accent, var(--accent)) 22%, transparent);
 }
 
+/* The fade is on the way in only. Paging to the next card empties this box
+   before its picture arrives, and fading out left the keyline standing around
+   nothing for as long as the fade ran. */
 .lightbox__img--in {
   opacity: 1;
+  transition: opacity 180ms ease-out;
 }
 
 /* Past twice its own pixels there is no more detail to interpolate toward, so
@@ -76,14 +79,19 @@
 /* Only a discrete zoom eases — a key or a double-click. A wheel or a drag has
    a hand behind it and must not lag one. */
 .lightbox__port[data-eased] .lightbox__img {
+  transition: transform 140ms ease-out;
+}
+
+.lightbox__port[data-eased] .lightbox__img--in {
   transition:
     opacity 180ms ease-out,
     transform 140ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lightbox__img,
-  .lightbox__port[data-eased] .lightbox__img {
+  .lightbox__img--in,
+  .lightbox__port[data-eased] .lightbox__img,
+  .lightbox__port[data-eased] .lightbox__img--in {
     transition: none;
   }
 }
