@@ -1367,6 +1367,14 @@ band, the menu and the prefs sheet ask `handle.diagnose()` and warn for each.
 fetch. That gets HTTP caching and off-main-thread decode via `createImageBitmap`.
 Base64-over-WebSocket hitches every time a render lands.
 
+**macOS can deny node the local network while `curl` still has it.** Seen on a
+node paired with a wall on another Mac: node's `fetch` to the wall failed with
+`EHOSTUNREACH` on every address, and `curl` from the same shell answered. So
+`post`, `ask` and `sync` upload with `curl`. **Unfixed:** the hook collects
+drawings from a remote wall with `fetch` (`hooks/wall-nudge.mjs`), so on such a
+node a drawing made on the wall would not reach the session that sent the
+picture. That follows from the failure above and has not been tried.
+
 ## Rejected
 
 | Considered | Verdict |
