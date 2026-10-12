@@ -98,6 +98,13 @@ gives it this wall's address and token in `~/transom/wall.env`. Renders sent
 there land here, and drawings made on them go back to the session that sent
 them.
 
+What `studio`'s own inbox held before that stays there. On `studio`:
+
+```
+transom sync                                  # sends each of them here, once
+transom sync --dry                            # lists them instead
+```
+
 ## How it is put together
 
 A Node daemon watches `~/transom/inbox/` with the OS's own recursive watcher,

@@ -1094,8 +1094,21 @@ TRANSOM_WALL=http://<wall>.local:8787
 TRANSOM_TOKEN=<the wall's ~/transom/token>
 ```
 
-Only `post`, `ask` and `wait` read it. They behave as they do locally and
-print the inbox path on the wall's Mac. Nothing is queued on the node:
+`post`, `ask`, `wait` and `sync` read it. The first three behave as they do
+locally and print the inbox path on the wall's Mac.
+
+**`transom sync` sends what the node's own inbox holds, each file once.** That
+is what landed there before it was paired, and anything written into the inbox
+without `transom post`. Each file goes up through `POST /api/inbox/<zone>` with
+the sidecar it already has, so a caption, a group and a keep all arrive; the
+local copy stays, and the card's lifetime starts again on the wall. A file that
+has gone leaves a marker at `~/transom/synced/<zone>/<name>` naming the wall,
+so pairing with a different wall sends it again. Each run deletes the markers
+of files the inbox no longer holds, which is all that bounds that directory. A
+question is not carried back: the answer lands on the wall and nothing here is
+waiting for it.
+
+Nothing is queued on the node:
 
 | Failure | Exit | Message |
 |---|---|---|

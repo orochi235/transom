@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, utimes, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readdir, rm, utimes, writeFile } from 'node:fs/promises'
 import { randomBytes } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -51,6 +51,21 @@ describe('watchInbox', () => {
     await w.ready
     expect(store.snapshot()).toHaveLength(8)
   }, 60_000)
+
+  it('trashes a file already past its lifetime at startup, and its sidecar with it', async () => {
+    const { watchInbox } = await bootDaemon(root)
+    const zone = join(root, 'inbox', 'z')
+    await mkdir(zone, { recursive: true })
+    await writeFile(join(zone, 'old.png.transom.json'), '{"caption":"old"}')
+    await writeFile(join(zone, 'old.png'), await png())
+    const longAgo = new Date(Date.now() - 7 * 86_400_000)
+    await utimes(join(zone, 'old.png'), longAgo, longAgo)
+    const w = watchInbox(() => {})
+    stop = () => w.close()
+    await w.ready
+    expect(await readdir(zone)).toEqual([])
+    expect((await readdir(join(root, 'trash'))).sort()).toEqual(['old.png', 'old.png.transom.json'])
+  })
 
   it('takes in an artifact and reports it under its zone', async () => {
     const { watchInbox } = await bootDaemon(root)
