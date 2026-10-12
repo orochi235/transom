@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { ago } from '@/age.ts'
 import { ASK_GLYPH } from '@/asks.ts'
 import type { StackParams } from '@/params.ts'
-import { PIN_GLYPH, PLAYS_GLYPH, type asksTextOf } from '@/backends/webgl/cardText.ts'
+import { ageTextOf, PIN_GLYPH, PLAYS_GLYPH, type asksTextOf } from '@/backends/webgl/cardText.ts'
 import { BADGE_LIFT } from '@/backends/webgl/constants.ts'
 import type { Chrome } from '@/backends/webgl/useChrome.ts'
 
@@ -18,6 +18,7 @@ export function placeCornerChips(
     fontsReady: boolean
     now: number
     bornAt: Map<string, number>
+    hosts: Map<string, string>
     pinned: Set<string>
     playsText: Map<string, string>
     asksText: ReturnType<typeof asksTextOf>
@@ -26,12 +27,12 @@ export function placeCornerChips(
   card: { id: string; mesh: THREE.Mesh; drawnW: number; drawnH: number; swell: number; cut: number },
 ): void {
   const { params, chips, pins, plays, asks, chipHeight, badgeFamily, fontsReady } = f
-  const { now, bornAt, pinned, playsText, asksText, fronts } = f
+  const { now, bornAt, hosts, pinned, playsText, asksText, fronts } = f
   const { id, mesh, drawnW, drawnH, swell, cut } = card
   const chip = chips.byId.get(id)
   const wearsChip = params.chips.cards && fronts.has(id)
   if (chip || wearsChip) {
-    const text = ago(now - (bornAt.get(id) ?? now))
+    const text = ageTextOf(ago(now - (bornAt.get(id) ?? now)), hosts.get(id))
     const look = {
       fill: params.colors.chipFill,
       ink: params.colors.chipInk,

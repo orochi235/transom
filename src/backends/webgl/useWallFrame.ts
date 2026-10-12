@@ -86,6 +86,7 @@ export function useWallFrame({
     // Real elapsed time, not the decay clock: keeping an artifact freezes how
     // it fades, and a chip that froze with it would report the wrong day.
     const bornAt = new Map(current.items.map((i) => [i.id, i.bornAt]))
+    const hosts = new Map(current.items.flatMap((i) => (i.host ? [[i.id, i.host] as const] : [])))
     const pinned = new Set(current.items.filter((i) => i.keptAt).map((i) => i.id))
     const playsText = playsTextOf(current.items)
     const asksText = asksTextOf(current.items)
@@ -162,6 +163,7 @@ export function useWallFrame({
       fontsReady,
       now,
       bornAt,
+      hosts,
       pinned,
       playsText,
       asksText,

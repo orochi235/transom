@@ -15,6 +15,10 @@ const MESH_GLYPH = '⬡'
  *  them the poster is. Two sheets, because that is what a group is. */
 const GROUP_GLYPH = '⧉'
 
+/** What the age chip reads: the age, and the Mac a card came from where that
+ *  is not the wall's own. */
+export const ageTextOf = (age: string, host: string | undefined): string => (host ? `${age} · ${host}` : age)
+
 // What the bottom-left badge reads. A video spends the runtime it
 // reported; an animation has none to spend and wears the bare glyph; a
 // mesh is not played at all and says so with its own.
