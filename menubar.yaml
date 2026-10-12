@@ -24,6 +24,10 @@ watch:
     launchagent: tech.michaelbaker.transom.daemon
   client:
     launchagent: tech.michaelbaker.transom.client
+  # Homebrew's one service, which stands in for both: `brew services` owns it
+  # and its daemon serves the page.
+  service:
+    launchagent: tech.michaelbaker.transom
   # The paths come from the daemon rather than this file, which is what keeps
   # a home directory out of a committed config.
   wall:
@@ -45,8 +49,8 @@ watch:
 # launchd has started that is not answering, which is the case `!wall.ok` alone
 # used to report as "not running".
 state:
-  - uninstalled: "!daemon.installed"
-  - stopped: "!daemon.loaded"
+  - uninstalled: "!daemon.installed && !service.installed"
+  - stopped: "!daemon.loaded && !service.loaded"
   - wedged: "!wall.ok"
   - up:
 
@@ -72,7 +76,7 @@ menu:
     when: uninstalled
   - text: "client not loaded"
     icon: display.trianglebadge.exclamationmark
-    when: "!client.loaded && !uninstalled"
+    when: "daemon.installed && !client.loaded"
   - separator
   - text: Man the wall
     icon: macwindow
@@ -104,7 +108,7 @@ menu:
   # which `transom cycle` cannot do, since kickstart needs the job already loaded.
   - text: Restart the daemon
     icon: arrow.clockwise
-    when: "!uninstalled"
+    when: daemon.installed
     agent: daemon.restart
   - text: Cycle the wall
     icon: arrow.triangle.2.circlepath

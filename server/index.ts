@@ -24,6 +24,7 @@ import { mountItems } from './routes/items.ts'
 import { mountMarks } from './routes/marks.ts'
 import { mountZones } from './routes/zones.ts'
 import { mountDebug } from './routes/debug.ts'
+import { mountPage } from './page.ts'
 import { BEAT_MS, type Disk, type ServerMessage } from '@shared/protocol.ts'
 import { stampConsole } from './stamp.ts'
 
@@ -39,7 +40,6 @@ const app = express()
 app.use(guardWrites(token))
 mountRemote(app, { token })
 const http = createServer(app)
-const wss = new WebSocketServer({ server: http, path: '/ws' })
 const clients = new Set<WebSocket>()
 let zoneColors: Record<string, string> = {}
 let zoneIcons: Record<string, string> = {}
@@ -54,7 +54,7 @@ setInterval(() => broadcast({ type: 'beat' }), BEAT_MS).unref()
 
 let disk: Disk | null = null
 
-wss.on('connection', (ws) => {
+const greet = (ws: WebSocket) => {
   clients.add(ws)
   ws.on('close', () => clients.delete(ws))
   const hello: ServerMessage = {
@@ -69,7 +69,9 @@ wss.on('connection', (ws) => {
     disk,
   }
   ws.send(JSON.stringify(hello))
-})
+}
+const sockets = (server: typeof http) => new WebSocketServer({ server, path: '/ws' }).on('connection', greet)
+const wss = sockets(http)
 
 mountWall(app, { broadcast, disk: () => disk })
 // The poster viewer, which is a page this daemon shoots itself.
@@ -153,3 +155,22 @@ http.on('error', onListenError)
 wss.on('error', onListenError)
 
 http.listen(config.port, () => console.log(`[transom] :${config.port}`))
+
+if (config.page) {
+  if (!mountPage(app, config.page)) {
+    console.error(`[transom] TRANSOM_PAGE names no build: ${config.page}`)
+    process.exit(1)
+  }
+  // The page's own port too, so a link to the wall is the same link whether
+  // vite or this daemon is behind it.
+  const page = createServer(app)
+  let reported = false
+  const onPageError = (err: NodeJS.ErrnoException) => {
+    if (reported) return
+    reported = true
+    console.error(`[transom] page port ${config.pagePort}: ${err.code}. The wall is at :${config.port} only.`)
+  }
+  page.on('error', onPageError)
+  sockets(page).on('error', onPageError)
+  page.listen(config.pagePort, () => console.log(`[transom] page :${config.pagePort}`))
+}

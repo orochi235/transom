@@ -7,15 +7,17 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     fileprivate var results = Results()
     private var timer: Timer?
+    private var menuOpen = false
 
     override init() {
         super.init()
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
-        NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
-            ) { [weak self] _ in self?.refresh() }
+        StatusButton.follow({ [weak menu] in menu }) { [weak self] open in
+            self?.menuOpen = open
+            self?.refresh()
+        }
         refresh()
         poll()
         timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
@@ -48,6 +50,15 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         group.enter()
         DispatchQueue.global(qos: .utility).async {
+            let r = ServiceResult(Watcher.launchAgent(label: "tech.michaelbaker.transom", plist: "~/Library/LaunchAgents/tech.michaelbaker.transom.plist"))
+            sync.async {
+                next.service = r
+                group.leave()
+            }
+        }
+
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
             let r = WallResult(Watcher.http("http://localhost:8787/api/health"))
             sync.async {
                 next.wall = r
@@ -74,7 +85,7 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func refresh() {
         guard let button = statusItem.button else { return }
-        Draw.face(renderFace(results), on: button)
+        Draw.face(renderFace(results), on: button, menuOpen: menuOpen)
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {

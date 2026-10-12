@@ -33,10 +33,10 @@
         <h2>Run the wall</h2>
         <p>macOS. Homebrew is the way in, and it brings its own Node:</p>
         <pre><code>brew install orochi235/tap/transom
-transom install    # daemon and client, as LaunchAgents</code></pre>
+transom install    # starts the wall under launchd</code></pre>
         <p>
-          launchd keeps both running across logins and restarts; <code>transom stat</code>
-          says whether they answer, and <code>transom cycle</code> restarts them.
+          launchd keeps it running across logins and restarts; <code>transom stat</code>
+          says whether it answers, and <code>transom cycle</code> restarts it.
         </p>
         <p>To hack on it, run it from a clone instead. That needs Node 22.18 or newer:</p>
         <pre><code>git clone https://github.com/orochi235/transom
