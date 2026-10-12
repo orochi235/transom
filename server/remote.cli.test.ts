@@ -72,6 +72,11 @@ describe('remote mode', () => {
     expect(side.session).toBe('sess-1')
   })
 
+  it('prints a link to the card on the wall host, apart from the path', async () => {
+    const { out, err } = await run(['post', 'shot.png'])
+    expect(err.trim()).toBe(`wall: ${url}/to/z/${out.trim().split('/').pop()}`)
+  })
+
   it.each(['shot[1].png', 'a{1}.png'])('sends a file named %s without curl globbing it', async (name) => {
     await writeFile(join(node, name), `bytes of ${name}`)
     const { code, out, err } = await run(['post', name])

@@ -192,8 +192,8 @@ if (!off && !ruleFound(dirs)) {
 
   - **Any image you create goes on the wall, not just into a file.** Reading an
     image only shows it to you. Send it with \`transom post <file>\`, or pipe a generator
-    straight in; the zone is the repo's own directory name. Then say which zone
-    it went to. Never \`open\` a render in Preview.
+    straight in; the zone is the repo's own directory name. It prints a \`wall:\` link
+    to the card; give that link when you mention the image. Never \`open\` a render in Preview.
 `)
 }
 console.log(`· ${await daemon()}`)

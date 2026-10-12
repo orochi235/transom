@@ -55,6 +55,12 @@ describe('transom post with a .transom.yaml', () => {
     expect(sent[0]).toMatch(new RegExp(`${wall}/inbox/icons/[^/]+\\.ttl30m\\.png$`))
   })
 
+  it('prints a link to the card on this host\'s daemon, apart from the path', async () => {
+    const { sent, err } = await run(['post', '--zone', 'my zone', 'shot.png'], { TRANSOM_PORT: '8799' })
+    expect(sent).toHaveLength(1)
+    expect(err.trim()).toBe(`wall: http://localhost:8799/to/%6d%79%20%7a%6f%6e%65/${sent[0]!.split('/').pop()}`)
+  })
+
   it('lets a flag beat the file', async () => {
     await settings('zone: icons\ndefaults:\n  ttl: 30m\n')
     const { sent } = await run(['post', '--zone', 'other', '--ttl', '5m', 'shot.png'])

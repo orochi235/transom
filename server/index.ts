@@ -19,6 +19,7 @@ import * as settings from './settings.ts'
 import { alert, toastFor } from './alert.ts'
 import { mountWall } from './routes/wall.ts'
 import { mountFiles } from './routes/files.ts'
+import { mountTo } from './routes/to.ts'
 import { mountItems } from './routes/items.ts'
 import { mountMarks } from './routes/marks.ts'
 import { mountZones } from './routes/zones.ts'
@@ -74,6 +75,7 @@ mountWall(app, { broadcast, disk: () => disk })
 // The poster viewer, which is a page this daemon shoots itself.
 mountMeshView(app)
 mountFiles(app)
+mountTo(app)
 mountItems(app, { broadcast })
 const announceMarks = mountMarks(app, { broadcast })
 mountZones(app, {

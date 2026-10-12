@@ -172,6 +172,17 @@ remote_sent() {
   : > "$transom_root/remote-sessions/$(printf '%s' "$session" | tr -c 'A-Za-z0-9._-' '_')"
 }
 
+# Where the card hangs, on stderr: stdout is the path `transom wait` takes. The
+# daemon resolves the name to the card, so nothing here knows how an id is made.
+wall_link() {
+  if remote_on; then base=$TRANSOM_WALL; else base="http://localhost:${TRANSOM_PORT:-8787}"; fi
+  case "$zone" in
+    *[!A-Za-z0-9._-]*) seg=$(printf '%s' "$zone" | od -An -tx1 | tr -d ' \n' | sed 's/../%&/g') ;;
+    *) seg=$zone ;;
+  esac
+  echo "wall: $base/to/$seg/$(basename "$1")" >&2
+}
+
 if ! remote_on; then
   mkdir -p "$dir"
   # Where this zone's renders come from, so the daemon can find the project's
@@ -194,6 +205,7 @@ if [ $# -eq 0 ]; then
     cat > "$dest"
     echo "$dest"
   fi
+  wall_link "$dest"
   [ -n "$question" ] && [ -z "$no_wait" ] && await_answer "$dest"
   exit 0
 fi
@@ -238,6 +250,7 @@ for f in "$@"; do
     cp "$f" "$dest"
     echo "$dest"
   fi
+  wall_link "$dest"
   # An if, not `[ -n ... ] &&`: as the loop's last command, a false test would
   # be the script's exit status, and every send without a question reported failure.
   if [ -n "$question" ] && [ -z "$no_wait" ]; then await_answer "$dest"; fi

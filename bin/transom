@@ -1,7 +1,9 @@
 #!/bin/sh
 # transom: a wall for renders. One command sends to it, asks on it and runs it.
 #
-#   transom post FILE...          puts it on the wall and returns
+#   transom post FILE...          puts it on the wall and returns, printing the
+#                                 path it landed at and, on stderr, a `wall:`
+#                                 link that opens its card
 #   some-generator | transom post reads stdin, writes a .png
 #   transom ask "QUESTION" FILE   asks on the card, waits, prints the answer
 #   transom wait PATH             waits on a question already sent, by the path
@@ -64,7 +66,7 @@
 # triggers on.
 set -eu
 
-usage() { sed -n '2,64p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,66p' "$0" | sed 's/^# \{0,1\}//'; }
 
 # `wire` leaves this on PATH as a symlink, and the rest of the checkout is
 # beside the file it points at. Homebrew's formula says where instead.

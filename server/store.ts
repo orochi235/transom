@@ -12,18 +12,21 @@ export function add(entry: { item: WallItem } & Files) {
   entries.set(entry.item.id, { ...entry, takes: new Map() })
 }
 
-export function has(sourcePath: string) {
+/** The card a file hangs on: its own, or the group's it is a take of. */
+export function cardAt(sourcePath: string): WallItem | null {
   for (const e of entries.values()) {
     if (e.takes.size === 0) {
-      if (e.sourcePath === sourcePath) return true
+      if (e.sourcePath === sourcePath) return e.item
       continue
     }
     // A group's own sourcePath is a copy of a take's, so only the takes are
     // asked: the sweep must re-offer nothing, and must not skip a take either.
-    for (const f of e.takes.values()) if (f.sourcePath === sourcePath) return true
+    for (const f of e.takes.values()) if (f.sourcePath === sourcePath) return e.item
   }
-  return false
+  return null
 }
+
+export const has = (sourcePath: string) => cardAt(sourcePath) !== null
 
 /**
  * Adds a take to a group, opening the group's card if this is its first.

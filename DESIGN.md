@@ -1115,6 +1115,12 @@ mode-600 file removed on exit, on the node and in `pair`'s own check.
 | `POST /api/marks/claim` | What the node's hook calls to collect drawings. |
 | `GET /api/whoami` | The wall's hostname, for `pair` to check the install. |
 
+`GET /to/:zone/:name` is the link a send prints on stderr as `wall: …`. The
+daemon redirects it to the card that file hangs on — `#/<zone>/<card id>` on the
+page, at whatever host name the request used — or to the zone's pile when the
+file is not on the wall. The sender names the file because it cannot know the
+card: a card's id is a hash the daemon makes, and a take hangs on its group's.
+
 **Every route above, and every request on any route that is not a `GET`, needs
 the token from any address but loopback.** Reads stay open, so a wall page
 opened from another host shows the wall but cannot dismiss, keep, answer, draw

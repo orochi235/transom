@@ -1,3 +1,5 @@
+import { hashOfPath } from '@shared/viewHash.ts'
+
 /**
  * Where the view is, as a path from the wall down. `[]` is the wall itself,
  * `['weasel']` a pile with focus, `['weasel', 'img-1']` a card.
@@ -88,7 +90,7 @@ export function descend(
 
 /** The view as a URL fragment — `#/weasel/img-1`, or empty for the wall. */
 export function hashOfView(state: ViewState): string {
-  return state.path.length === 0 ? '' : `#/${state.path.map(encodeURIComponent).join('/')}`
+  return hashOfPath(state.path)
 }
 
 /** The inverse of `hashOfView`. Anything it cannot read is the wall, and only

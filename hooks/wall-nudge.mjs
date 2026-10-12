@@ -276,7 +276,7 @@ export function message(hits, cwd) {
     `${names.join(', ')} ${one ? 'is' : 'are'} only visible to you. ` +
     `Put ${one ? 'it' : 'them'} on the transom wall now — ` +
     `\`transom post ${names.join(' ')}\` (or \`~/src/transom/bin/transom\` if it is not on PATH) — ` +
-    `then say which zone ${one ? 'it' : 'they'} went to. Do not \`open\` renders in Preview.\n`
+    `then link ${one ? 'it' : 'each'} with the \`wall:\` URL that prints. Do not \`open\` renders in Preview.\n`
   )
 }
 
