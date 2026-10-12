@@ -170,6 +170,8 @@ describe('watchInbox', () => {
     await sleep(500)
 
     expect(ours()).toHaveLength(1)
+    // Teardown deletes the root, and an adoption still running writes into it.
+    await w.ready
   })
 
   it('lands every take of a group on one card, and appends the rest', async () => {

@@ -8,8 +8,9 @@
 // generated files into its scratchpad; this fires after the fact, when the fix
 // is one command.
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { homedir, hostname } from 'node:os'
+import { execFile } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { homedir, hostname, tmpdir } from 'node:os'
 import path from 'node:path'
 
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|tiff?|avif)$/i
@@ -188,6 +189,15 @@ export function refusal(status, wall) {
   return `transom: the wall at ${wall} refused this host's token — run \`transom pair ${hostname().replace(/\.local$/, '')}\` on the wall.\n`
 }
 
+/** curl and not fetch, as `transom post` uses: macOS can refuse node the local
+ *  network while curl still reaches the wall. Resolves to curl's stdout, or
+ *  null when the wall did not answer. */
+const curl = (args, seconds) =>
+  new Promise((resolve) => {
+    execFile('curl', ['-gsS', '--max-time', String(seconds), ...args], { encoding: 'utf8' }, (err, stdout) =>
+      resolve(err ? null : stdout))
+  })
+
 /** Claims from the wall host, and swaps each drawing's path there for a copy
  *  here — the session cannot read the wall host's disk. An id that is not a
  *  plain hash is skipped: it becomes a filename here. A drawing that will not
@@ -199,46 +209,55 @@ export async function claimRemote(session, env, root = transomRoot()) {
   const down = path.join(root, 'remote-sessions', WALL_DOWN)
   const refused = path.join(root, 'remote-sessions', WALL_REFUSED)
   if (fresh(down) || fresh(refused)) return { claimed: [], notice: '' }
-  const headers = { Authorization: `Bearer ${env.token}`, 'X-Transom-Protocol': '1' }
-  let claimed
+  // The token reaches curl in a file: argv shows in `ps`.
+  const tmp = mkdtempSync(path.join(tmpdir(), 'transom-claim-'))
   try {
-    const res = await fetch(`${env.wall}/api/marks/claim`, {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session }),
-      signal: AbortSignal.timeout(2000),
-    })
+    const headers = path.join(tmp, 'headers')
+    writeFileSync(headers, `Authorization: Bearer ${env.token}\nX-Transom-Protocol: 1\n`, { mode: 0o600 })
+    const reply = path.join(tmp, 'reply')
+    const status = await curl([
+      '-H', `@${headers}`, '-H', 'Content-Type: application/json', '-d', JSON.stringify({ session }),
+      '-o', reply, '-w', '%{http_code}', `${env.wall}/api/marks/claim`,
+    ], 2)
+    if (status === null) {
+      mark(down)
+      return { claimed: [], notice: '' }
+    }
     rmSync(down, { force: true })
-    if (res.status === 401) {
+    if (status === '401') {
       mark(refused)
-      return { claimed: [], notice: refusal(res.status, env.wall) }
+      return { claimed: [], notice: refusal(401, env.wall) }
     }
     rmSync(refused, { force: true })
-    const body = await res.json()
-    claimed = Array.isArray(body?.claimed) ? body.claimed : []
-  } catch {
-    mark(down)
-    return { claimed: [], notice: '' }
-  }
-  const dir = path.join(root, 'marks', 'remote')
-  const kept = []
-  for (const c of claimed) {
-    if (typeof c?.id !== 'string' || !MARK_ID.test(c.id)) continue
-    const url = `${env.wall}/api/marks/${c.id}.png`
+    let claimed = []
     try {
-      const png = await fetch(url, { headers, signal: AbortSignal.timeout(5000) })
-      const bytes = Buffer.from(await png.arrayBuffer())
-      if (!png.ok || bytes.length === 0) throw new Error(`HTTP ${png.status}`)
-      mkdirSync(dir, { recursive: true })
-      const local = path.join(dir, `${c.id}.png`)
-      writeFileSync(local, bytes)
-      c.image = local
+      const body = JSON.parse(readFileSync(reply, 'utf8'))
+      if (Array.isArray(body?.claimed)) claimed = body.claimed
     } catch {
-      c.image = url
+      mark(down)
+      return { claimed: [], notice: '' }
     }
-    kept.push(c)
+    const dir = path.join(root, 'marks', 'remote')
+    const kept = []
+    for (const c of claimed) {
+      if (typeof c?.id !== 'string' || !MARK_ID.test(c.id)) continue
+      const url = `${env.wall}/api/marks/${c.id}.png`
+      const local = path.join(dir, `${c.id}.png`)
+      mkdirSync(dir, { recursive: true })
+      const got = await curl(['-f', '-H', `@${headers}`, '-o', local, url], 5)
+      let size = 0
+      try { size = statSync(local).size } catch { /* nothing came down */ }
+      if (got !== null && size > 0) c.image = local
+      else {
+        rmSync(local, { force: true })
+        c.image = url
+      }
+      kept.push(c)
+    }
+    return { claimed: kept, notice: '' }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true })
   }
-  return { claimed: kept, notice: '' }
 }
 
 /** Forgets only what this hook wrote; the local daemon's own marks/ records

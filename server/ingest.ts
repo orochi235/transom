@@ -264,7 +264,9 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
  * file is adopted however old it is; that is what the rescue bought.
  */
 async function adopt(sourcePath: string): Promise<Landed | null> {
-  const { mtimeMs } = await stat(sourcePath)
+  // Gone between the scan and its turn: the rejection had no handler.
+  const mtimeMs = await stat(sourcePath).then((s) => s.mtimeMs, () => null)
+  if (mtimeMs === null) return null
   // Unsent marks hold a card the way a rescue does: nothing drops them unasked.
   const rescued =
     keptFrom(await readStamp(sourcePath)) !== null || (await marks.read(idFor(sourcePath)))?.status === 'pending'
