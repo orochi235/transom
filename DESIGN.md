@@ -1167,6 +1167,7 @@ answer poll, when it runs under Claude Code.
 | `--app Name=path` opens another file. | Dropped with a warning, by the CLI and again by the daemon: a node's path means nothing on the wall's Mac. A bare `--app Name` still opens the sent file there. |
 | The CLI refuses a video when it has no ffmpeg. | The daemon checks instead and returns 422. |
 | Any zone name. | Letters, digits, `.`, `_` and `-` only. |
+| The lightbox's info line says nothing about where a card came from. | It says `from <host>` after the age: the item carries the sidecar's `host`. |
 
 **On a node, the hook claims from the wall.** A send writes
 `~/transom/remote-sessions/<session>`, and while that exists the hook claims

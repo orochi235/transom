@@ -114,6 +114,8 @@ export type WallItem = {
    *  Absent for anything dropped in by hand. */
   repo?: string
   sha?: string
+  /** The Mac it was sent from, where that is not the wall's own. */
+  host?: string
   /** Absent for a picture, which is the ordinary case. `page` means `/orig`
    *  serves an HTML file the lightbox runs; `video` means it serves a video
    *  the lightbox plays; `mesh` means it serves a model the lightbox orbits;

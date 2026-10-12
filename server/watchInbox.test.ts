@@ -81,6 +81,23 @@ describe('watchInbox', () => {
     expect(arrived[0]!.w).toBe(8)
   })
 
+  it('names the Mac a remote send came from, and nothing for a local one', async () => {
+    const { watchInbox } = await bootDaemon(root)
+    const arrived: WallItem[] = []
+    const w = watchInbox((landed) => arrived.push(landed.item))
+    stop = () => w.close()
+    const zone = join(root, 'inbox', 'z')
+    await mkdir(zone, { recursive: true })
+    await writeFile(join(zone, 'far.png.transom.json'), '{"host":"teitou"}')
+    await writeFile(join(zone, 'far.png'), await png())
+    await writeFile(join(zone, 'near.png.transom.json'), '{"caption":"near"}')
+    await writeFile(join(zone, 'near.png'), await png())
+    await vi.waitFor(() => expect(arrived).toHaveLength(2), { timeout: 8000 })
+    const host = (name: string) => arrived.find((i) => i.path.endsWith(name))!.host
+    expect(host('far.png')).toBe('teitou')
+    expect(host('near.png')).toBeUndefined()
+  })
+
   it('keeps the watch alive beside the zone-color watcher', async () => {
     // Zone colors watch every recorded project's `.hued`, most of them gone.
     // On fsevents that once silenced the inbox watch, leaving only the sweep.

@@ -28,6 +28,11 @@ describe('metaOf', () => {
     expect(metaOf(item({ repo: 'weasel', sha: 'abc1234' }), 0)).toContain('weasel@abc1234')
   })
 
+  it('says which Mac sent it, when that was not the wall\'s own', () => {
+    expect(metaOf(item({ host: 'teitou' }), 240_000).slice(0, 3)).toEqual(['transom', '4m', 'from teitou'])
+    expect(metaOf(item(), 0).join(' ')).not.toContain('from')
+  })
+
   it('says nothing about provenance for a file dropped in by hand', () => {
     expect(metaOf(item(), 0)).toEqual(['transom', '0s', 'png', '1024×576'])
   })
