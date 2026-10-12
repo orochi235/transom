@@ -44,6 +44,17 @@ const agents = (): string[] =>
       return `  ${(label ?? '').padEnd(42)} pid ${pid === '-' ? '(not running)' : pid}`
     })
 
+/** Homebrew's one service, where `brew services` runs the wall instead of the
+ *  pair `transom install` writes. Its pid is tsx's, not the listener's, so
+ *  being up is the evidence that the daemon on the port is its. */
+const brewed = (): boolean =>
+  run('launchctl', 'list')
+    .split('\n')
+    .some((line) => {
+      const [pid, , label] = line.split('\t')
+      return label === 'tech.michaelbaker.transom' && pid !== '-'
+    })
+
 const main = async () => {
   const code = stamp()
   const daemon = await daemonBuild()
@@ -53,7 +64,12 @@ const main = async () => {
   console.log(`code on disk   ${describe(code)}${code.dirty ? '  (uncommitted changes)' : ''}`)
   console.log('')
   console.log(`daemon :${DAEMON}   ${daemonPid ? `pid ${daemonPid}` : 'NOT RUNNING'}`)
-  if (daemon) {
+  const keg = daemonPid !== '' && brewed()
+  if (keg) {
+    console.log("               Homebrew's service, running its keg and not this checkout.")
+    console.log('               To run this checkout: brew services stop transom && bin/transom install')
+    console.log(`               started ${startedAt(daemonPid)}`)
+  } else if (daemon) {
     console.log(`               build ${describe(daemon)}`)
     console.log(`               started ${startedAt(daemonPid)}`)
     if (!agree(daemon, code)) {
@@ -70,7 +86,11 @@ const main = async () => {
   console.log('')
   console.log(`client :${CLIENT}   ${clientPid ? `pid ${clientPid}` : 'NOT RUNNING'}`)
   if (clientPid) console.log(`               started ${startedAt(clientPid)}`)
-  console.log('               Vite reloads itself, so the client is never stale.')
+  console.log(
+    keg
+      ? '               The page built into the keg, served by the daemon.'
+      : '               Vite reloads itself, so the client is never stale.',
+  )
 
   const listed = agents()
   if (listed.length > 0) {

@@ -33,6 +33,10 @@ does not reload — restart it instead of starting a second:
 
     npm run daemon:restart
 
+If it is Homebrew's service, it runs the keg and not this checkout — stop it:
+
+    brew services stop transom
+
 To see what is running and whether it matches this checkout:
 
     npm run doctor

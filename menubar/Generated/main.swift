@@ -50,6 +50,15 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         group.enter()
         DispatchQueue.global(qos: .utility).async {
+            let r = ServiceResult(Watcher.launchAgent(label: "tech.michaelbaker.transom", plist: "~/Library/LaunchAgents/tech.michaelbaker.transom.plist"))
+            sync.async {
+                next.service = r
+                group.leave()
+            }
+        }
+
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
             let r = WallResult(Watcher.http("http://localhost:8787/api/health"))
             sync.async {
                 next.wall = r

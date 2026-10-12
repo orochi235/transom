@@ -20,6 +20,10 @@ export const config = {
   marks: join(root, 'marks'),
   zones: join(root, 'zones'),
   port: DAEMON_PORT,
+  /** A built page for the daemon to serve, on its own port and on the page's.
+   *  Homebrew's service sets it; a checkout runs vite on that port instead. */
+  page: process.env.TRANSOM_PAGE,
+  pagePort: CLIENT_PORT,
   ttlMs: parseDuration(process.env.TRANSOM_TTL ?? '8h') ?? 28_800_000,
   trashMs: parseDuration(process.env.TRANSOM_TRASH_TTL ?? '24h') ?? 86_400_000,
   trashMaxBytes: parseBytes(process.env.TRANSOM_TRASH_MAX, 10 * 1024 ** 3),
@@ -32,7 +36,9 @@ export const config = {
   incomingMs: 3_600_000,
   reapMs: 10 * 60_000,
   incoming: join(root, '.incoming'),
-  logs: join(homedir(), '.local', 'state', 'transom'),
+  /** Where launchd writes the logs the reaper rotates. Homebrew's service
+   *  logs under its own prefix and says so. */
+  logs: process.env.TRANSOM_LOGS ?? join(homedir(), '.local', 'state', 'transom'),
   maxEdge: 1024,
   /** Files ingested at once. Each one decodes, resizes, encodes a webp and
    *  re-encodes a full-resolution PNG, so this is the daemon's memory ceiling

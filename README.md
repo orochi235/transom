@@ -50,10 +50,14 @@ image's own metadata: the caption, plus the repo and commit the render ran in.
 
 ```
 brew install orochi235/tap/transom
-transom install                               # daemon :8787 + page :7750, as LaunchAgents
+brew services start transom                   # the wall, on :7750 and :8787
 transom wire                                  # skill, hook and rule check for Claude Code
 transom wire --repo                           # optional, in a repo: its .transom.yaml
 ```
+
+Homebrew's service is one process: the daemon, serving a page built when the
+formula installed. `transom up`, `down`, `cycle` and `stat` drive it, and
+`transom install` moves a wall an earlier release started onto it.
 
 A repo's `.transom.yaml` is committed with it and changes what a send from it
 does — its zone, whether renders open in Preview instead, default lifetime and
@@ -71,6 +75,10 @@ npm run sim -- --rate=600 --count=40          # arrivals/hour; count 0 = forever
 `sim` writes real files into `~/transom/inbox/<zone>/`, so it exercises the whole
 path an agent would, including the partial-write guard. `bin/transom` is on no
 path by default; call it as `~/src/transom/bin/transom` or link it.
+
+`bin/transom install` keeps a checkout running instead, as two LaunchAgents:
+the daemon and vite. It refuses while Homebrew's service holds the wall, since
+both want the same ports; `brew services stop transom` first.
 
 Run the public demo locally with `VITE_TRANSOM_DEMO=1 npm run dev:client`, and
 build the whole site with `npm run site`.

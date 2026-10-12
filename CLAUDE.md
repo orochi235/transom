@@ -22,5 +22,9 @@ last commit touching `server/`, `shared/` or the package files, so a
 client-only commit never trips it. Vite reloads itself, so the client half is
 never the stale one.
 
+Installed from Homebrew the wall is one service instead,
+`tech.michaelbaker.transom`, running the keg and not this checkout; `doctor`
+says so when that is what holds the port. `DESIGN.md`, *Running it*, has both.
+
 `npm run dev` refuses to start a second daemon behind the LaunchAgent rather
 than dying with `EADDRINUSE` where the message scrolls past.

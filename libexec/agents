@@ -8,6 +8,9 @@
 # The launchd daemon runs `tsx` without `watch` — a wall is not a dev server,
 # and a file save should not drop what is on screen. `transom cycle` is how a
 # server edit reaches it, which is the same button the menu bar offers.
+#
+# Installed from Homebrew it is one service instead, which `brew services`
+# owns: the daemon serves a page built at install, so there is no client agent.
 set -eu
 
 repo=${TRANSOM_HOME:-$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)}
@@ -22,6 +25,13 @@ client_port=${TRANSOM_CLIENT_PORT:-7750}
 # launchd starts with almost no PATH, and `.bin/tsx` and `.bin/vite` are both
 # node shebangs. Whichever node runs this is the one they get.
 nodedir=$(dirname -- "$(command -v node)")
+
+# Homebrew writes the service's plist beside libexec, so the file is what says
+# this copy came from the formula. The formula pins the label to $base.
+brewed=""
+[ -f "$repo/../$base.plist" ] && brewed=1
+# A menu bar item runs this under a PATH with no Homebrew on it.
+services() { "$(command -v brew || echo "$repo/../../../bin/brew")" services "$1" transom; }
 
 plist() { # label, program, log
   cat > "$agents/$1.plist" <<PLIST
@@ -55,14 +65,23 @@ $2
 PLIST
 }
 
-each() { for label in "$base.daemon" "$base.client"; do "$1" "$label"; done; }
+own="$base.daemon $base.client"
+if [ -n "$brewed" ]; then labels=$base; else labels=$own; fi
+each() { for label in $labels; do "$1" "$label"; done; }
+loaded() { launchctl print "$domain/$1" >/dev/null 2>&1; }
+# Both would hold the same ports, and KeepAlive makes the loser a restart loop.
+yield() {
+  loaded "$base" || return 0
+  echo "transom: the wall is running under brew services. Stop that first: brew services stop transom" >&2
+  exit 1
+}
 boot()   { launchctl bootstrap "$domain" "$agents/$1.plist" 2>/dev/null || true; }
 # bootout returns before launchd has let go of the label, and a bootstrap in
 # that window fails, which left a second `install` with nothing loaded.
 unboot() {
   launchctl bootout "$domain/$1" 2>/dev/null || true
   tries=0
-  while launchctl print "$domain/$1" >/dev/null 2>&1 && [ $tries -lt 50 ]; do
+  while loaded "$1" && [ $tries -lt 50 ]; do
     sleep 0.1
     tries=$((tries + 1))
   done
@@ -71,7 +90,17 @@ kick()   { launchctl kickstart -k "$domain/$1" >/dev/null 2>&1 || true; }
 
 case "${1:-stat}" in
   install)
+    [ -n "$brewed" ] || yield
     mkdir -p "$state" "$agents"
+    # The menu bar's items run `transom`, under a PATH that has this in it.
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$repo/bin/transom" "$HOME/.local/bin/transom"
+    if [ -n "$brewed" ]; then
+      # The pair an earlier release wrote here, or a checkout did.
+      for label in $own; do unboot "$label"; rm -f "$agents/$label.plist"; done
+      services restart
+      exit 0
+    fi
     # A stray dev server holding the daemon's port makes the daemon attach and
     # exit, and KeepAlive turns that into a restart loop rather than an error.
     pkill -f "$repo/node_modules/.bin/tsx" 2>/dev/null || true
@@ -79,18 +108,15 @@ case "${1:-stat}" in
     plist "$base.daemon" "		<string>$repo/node_modules/.bin/tsx</string>
 		<string>server/index.ts</string>" daemon
     plist "$base.client" "		<string>$repo/node_modules/.bin/vite</string>" client
-    # The menu bar's items run `transom`, under a PATH that has this in it.
-    mkdir -p "$HOME/.local/bin"
-    ln -sf "$repo/bin/transom" "$HOME/.local/bin/transom"
     each unboot
     each boot
     echo "installed: $base.daemon, $base.client"
     ;;
-  up)    each boot ;;
-  down)  each unboot ;;
+  up)    if [ -n "$brewed" ]; then services start; else yield; each boot; fi ;;
+  down)  if [ -n "$brewed" ]; then services stop; else each unboot; fi ;;
   cycle) each kick ;;
   stat)
-    for label in "$base.daemon" "$base.client"; do
+    for label in $labels; do
       printf '%-40s %s\n' "$label" \
         "$(launchctl print "$domain/$label" 2>/dev/null | awk '/^\tstate = /{print $3; exit}' || echo 'not loaded')"
     done

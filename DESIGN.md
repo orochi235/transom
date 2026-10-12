@@ -1123,7 +1123,8 @@ first time it starts, and sets the file to mode 600 each time it reads it. A
 request without it gets 401 and `this wall wants its token`. The page server on
 `:7750` proxies `/api` and adds `X-Forwarded-For`, so a request arriving on
 loopback is judged by the last address in that header: a LAN request through the
-page server needs the token too. To change the token, delete the file, restart
+page server needs the token too. Under Homebrew's service the daemon listens on
+`:7750` itself and sees the peer directly. To change the token, delete the file, restart
 the daemon, and pair each node again.
 
 `GET /api/marks/<id>.png` stays open: the wall page loads drawings from it, and
@@ -1227,7 +1228,7 @@ with a variable can be set in the daemon's environment.
 | `inbox/<zone>/`, `zones/<zone>.json` | Remove a zone folder that has sat empty for 24 hours, then the record of any zone left without a folder. The next send recreates both. | — |
 | `.incoming/` | Delete a remote upload cut off partway, after an hour. | — |
 | `marks/` | Delete records and drawings for cards no longer on the wall, after the trash's 24 hours. `marks/remote/` is the hook's, and it prunes that itself. | — |
-| `~/.local/state/transom/*.log` | Over 25 MB, copy to `<name>.1` and truncate in place. | `TRANSOM_LOG_MAX` |
+| `~/.local/state/transom/*.log`, or `$(brew --prefix)/var/log/transom/*.log` under Homebrew's service | Over 25 MB, copy to `<name>.1` and truncate in place. | `TRANSOM_LOG_MAX` |
 
 **Age is the later of a file's mtime and ctime.** Moving a card into the trash
 keeps its mtime and bumps its ctime, so mtime alone would age it by when it was
@@ -1410,6 +1411,22 @@ TRANSOM_TTL=90 npm run dev                       # seconds; the fallback before
 
 `sim` writes real files into `~/transom/inbox/<zone>/` in chunks, so it exercises
 the whole path an agent would — including the partial-write guard.
+
+**launchd keeps the wall up, one of two ways, and never both.** Both use the
+same ports, so each refuses or retires the other.
+
+| | Homebrew's service | A checkout's agents |
+|---|---|---|
+| Started by | `brew services start transom` | `bin/transom install` |
+| launchd labels | `tech.michaelbaker.transom` | `tech.michaelbaker.transom.daemon`, `.client` |
+| Runs | the keg: the released tag | the working tree |
+| Page on `:7750` | the daemon, serving `dist/` built at `brew install` (`TRANSOM_PAGE`) | vite, proxying to the daemon |
+| A server edit lands with | `brew upgrade`, then `transom cycle` | `transom cycle` |
+
+`libexec/agents` tells the two apart by the service plist Homebrew writes
+beside `libexec`, and from a keg `transom up`, `down` and `install` call
+`brew services`. From a keg `install` also removes the pair of agents, which is
+how a wall started by a release before the service moves onto it.
 
 ## Build order
 

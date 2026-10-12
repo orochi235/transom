@@ -24,6 +24,17 @@ struct ClientResult {
     var target = ""
 }
 
+struct ServiceResult {
+    var installed = false
+    var loaded = false
+    var running = false
+    var pid = 0
+    var label = ""
+    var plist = ""
+    var domain = ""
+    var target = ""
+}
+
 struct WallResult {
     var ok = false
     var status = 0
@@ -41,6 +52,7 @@ struct ZonesResult {
 struct Results {
     var daemon = DaemonResult()
     var client = ClientResult()
+    var service = ServiceResult()
     var wall = WallResult()
     var zones = ZonesResult()
 }
@@ -60,6 +72,20 @@ extension DaemonResult {
 }
 
 extension ClientResult {
+    init(_ o: LaunchAgentOutcome) {
+        self.init()
+        installed = o.installed
+        loaded = o.loaded
+        running = o.running
+        pid = o.pid
+        label = o.label
+        plist = o.plist
+        domain = Launchd.domain
+        target = Launchd.target(o.label)
+    }
+}
+
+extension ServiceResult {
     init(_ o: LaunchAgentOutcome) {
         self.init()
         installed = o.installed
@@ -94,8 +120,8 @@ extension ZonesResult {
 }
 
 extension Results {
-    var state_uninstalled: Bool { (!(self.daemon.installed)) }
-    var state_stopped: Bool { !self.state_uninstalled && (!(self.daemon.loaded)) }
+    var state_uninstalled: Bool { ((!(self.daemon.installed) && !(self.service.installed))) }
+    var state_stopped: Bool { !self.state_uninstalled && ((!(self.daemon.loaded) && !(self.service.loaded))) }
     var state_wedged: Bool { !self.state_uninstalled && !self.state_stopped && (!(self.wall.ok)) }
     var state_up: Bool { !self.state_uninstalled && !self.state_stopped && !self.state_wedged }
 }
@@ -126,7 +152,7 @@ func renderMenu(_ results: Results) -> [MenuNode] {
     if results.state_uninstalled {
         menu.append(.item("not installed — run transom install", nil, icon: MenuIcon.symbol("shippingbox")))
     }
-    if (!(results.client.loaded) && !(results.state_uninstalled)) {
+    if (results.daemon.installed && !(results.client.loaded)) {
         menu.append(.item("client not loaded", nil, icon: MenuIcon.symbol("display.trianglebadge.exclamationmark")))
     }
     menu.append(.separator)
@@ -148,7 +174,7 @@ func renderMenu(_ results: Results) -> [MenuNode] {
         menu.append(.item("Open the trash", .open("\(results.wall.data.trash)"), icon: MenuIcon.symbol("trash")))
     }
     menu.append(.separator)
-    if !(results.state_uninstalled) && results.daemon.installed {
+    if results.daemon.installed && results.daemon.installed {
         menu.append(.item("Restart the daemon", .agent(label: "tech.michaelbaker.transom.daemon", plist: "~/Library/LaunchAgents/tech.michaelbaker.transom.daemon.plist", verb: .restart), icon: MenuIcon.symbol("arrow.clockwise")))
     }
     if (results.state_up || results.state_wedged) {
