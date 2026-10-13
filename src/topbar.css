@@ -165,3 +165,8 @@
   margin-inline-start: auto;
   text-align: end;
 }
+
+/* Muted ink against the pressed row's fill does not read. */
+.panel__row[aria-pressed='true'] .topbar__count {
+  color: inherit;
+}
