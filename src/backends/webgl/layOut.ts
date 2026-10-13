@@ -132,10 +132,13 @@ export function layOut({
   for (const list of cardsByZone.current.values()) if (list[0]) fronts.add(list[0])
   // Nothing on a flat wall is buried, so every card is a front.
   for (const id of stream.current) fronts.add(id)
-  // What the zone holds, not what the pile draws: `lod.rankCap` leaves the
-  // deep ranks unplaced, and a count of the placed ones stalls at the cap.
+  // What the zone holds under the band's filters, not what the pile draws:
+  // `lod.rankCap` leaves the deep ranks unplaced, and a count of the placed
+  // ones stalls at the cap.
   const held = new Map<string, number>()
-  if (!flat) for (const it of model) held.set(it.zone, (held.get(it.zone) ?? 0) + 1)
+  if (!flat)
+    for (const it of model)
+      if (!it.excluded) held.set(it.zone, (held.get(it.zone) ?? 0) + 1)
   zoneCounts.current = held
   return { result, channels, tick, fronts }
 }
