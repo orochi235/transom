@@ -1417,12 +1417,13 @@ everything a node sends a remote wall goes through `curl`: `post`, `ask`,
   goes back to ordinary. A thread would let the agent follow up on the same
   card, and needs a history in the lightbox and a way to mark it resolved. Worth
   it only if follow-ups keep arriving as new cards.
-- **Vite's watcher can die under launchd, and nothing says so.** Seen once, on
-  Oct 13 2026: the client agent had been up 18 hours, its last `hmr update` in
-  `client.log` was 12 hours old, and it went on serving a module that had
-  changed on disk — a `touch` reloaded nothing. Kickstarting the agent fixed
-  it. Cause unknown. `doctor` and the `daemon stale` chip only compare the
-  daemon's build, so a stale client has no signal of its own.
+- **A stale client has no signal of its own.** Vite only reloads when macOS
+  delivers file events, and on Oct 13 2026 it delivered none to any process:
+  `fseventsd` sat at 99% CPU and neither `fs.watch` nor the `fsevents` module
+  saw a write anywhere on the disk. The client agent went on serving modules
+  from before a pull, and restarting it only caught it up once. `doctor` and
+  the `daemon stale` chip compare the daemon's build and say nothing about
+  the page.
 - **Multi-monitor.** Does a zone ever span displays, or is one board one screen?
 - **Where unsent marks go when their session has gone — TODO, deliberately
   unbuilt.** Today a drawing whose sender has exited stays on its card until
