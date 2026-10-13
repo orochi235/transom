@@ -110,7 +110,7 @@ button.panel__row {
   cursor: pointer;
 }
 
-button.panel__row:hover {
+button.panel__row:not([aria-pressed='true']):hover {
   color: var(--ink);
 }
 
