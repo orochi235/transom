@@ -89,7 +89,7 @@ const main = async () => {
   console.log(
     keg
       ? '               The page built into the keg, served by the daemon.'
-      : '               Vite reloads itself, so the client is never stale.',
+      : '               Vite reloads itself; if an edit does not show, `transom cycle` restarts it.',
   )
 
   const listed = agents()
