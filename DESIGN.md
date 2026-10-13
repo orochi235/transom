@@ -1168,6 +1168,7 @@ answer poll, when it runs under Claude Code.
 | The CLI refuses a video when it has no ffmpeg. | The daemon checks instead and returns 422. |
 | Any zone name. | Letters, digits, `.`, `_` and `-` only. |
 | The lightbox's info line says nothing about where a card came from. | It says `from <host>` after the age: the item carries the sidecar's `host`. |
+| The band has no `from` panel. | It has one beside `type`: a row per sending Mac, with `local` for the wall's own cards, and picking rows dims every other Mac's cards. |
 
 **On a node, the hook claims from the wall.** A send writes
 `~/transom/remote-sessions/<session>`, and while that exists the hook claims

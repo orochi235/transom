@@ -18,6 +18,9 @@ export type BandState = {
   /** The time range, as ages rather than timestamps — a stored absolute range
    *  would name a window that has already slid off the axis by the reload. */
   range: Filter | null
+  /** The Macs the wall is narrowed to, by the name their cards carry; empty is
+   *  every Mac, and `LOCAL` stands for the wall's own. */
+  hosts: readonly string[]
   /** Which arrangement `[` and `]` landed on, by name. An index would point at
    *  a different layout the moment the registry is reordered. */
   arrangement: string | null
@@ -28,6 +31,7 @@ export const DEFAULT_BAND: BandState = {
   sort: DEFAULT_SORT,
   kinds: [],
   range: null,
+  hosts: [],
   arrangement: null,
   listed: false,
 }
@@ -58,6 +62,7 @@ const READERS: { [K in keyof BandState]: Reader<K> } = {
     if (!Number.isFinite(fromAgo) || !Number.isFinite(toAgo) || fromAgo < toAgo) return undefined
     return { fromAgo, toAgo }
   },
+  hosts: (raw) => (Array.isArray(raw) ? raw.filter((h): h is string => typeof h === 'string') : undefined),
   arrangement: (raw) => (raw === null || typeof raw === 'string' ? raw : undefined),
   listed: (raw) => (typeof raw === 'boolean' ? raw : undefined),
 }

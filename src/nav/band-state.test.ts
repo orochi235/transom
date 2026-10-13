@@ -23,6 +23,7 @@ const SAMPLE: { [K in keyof BandState]-?: BandState[K] } = {
   sort: 'recency',
   kinds: ['video'],
   range: { fromAgo: 3_600_000, toAgo: 0 },
+  hosts: ['', 'studio'],
   arrangement: 'inbox',
   listed: true,
 }
@@ -54,6 +55,10 @@ describe('readBand', () => {
 
   it('drops a kind this build no longer has', () => {
     expect(readBand({ kinds: ['video', 'hologram'] }).kinds).toEqual(['video'])
+  })
+
+  it('drops a host that is not a name', () => {
+    expect(readBand({ hosts: ['studio', 7, null] }).hosts).toEqual(['studio'])
   })
 
   it('refuses a range whose thumbs are the wrong way round', () => {

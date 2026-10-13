@@ -20,6 +20,8 @@ function band(disk: Disk | null) {
       onSort={() => {}}
       kinds={new Set()}
       onKind={() => {}}
+      hosts={new Set()}
+      onHost={() => {}}
       where={null}
       arrangement="grid"
       count={0}

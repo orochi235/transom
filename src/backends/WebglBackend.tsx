@@ -6,6 +6,7 @@ import { fakeFlags } from '@/debug-flags.ts'
 import { Lightbox } from '@/Lightbox.tsx'
 import { Axes } from '@/nav/Axes.tsx'
 import { keptByKind, type KindKey } from '@/nav/kind-filter.ts'
+import { keptByHost } from '@/nav/host-filter.ts'
 import { Minimap, type Plan } from '@/nav/Minimap.tsx'
 import type { SortKey } from '@/nav/sort.ts'
 import { keptBy, resolve, sameIds, type Filter } from '@/nav/time-filter.ts'
@@ -58,6 +59,14 @@ export function WebglBackend(props: Props) {
       })),
     [onBand],
   )
+  const hosts = useMemo<ReadonlySet<string>>(() => new Set(props.band.hosts), [props.band.hosts])
+  const onHost = useCallback(
+    (key: string) =>
+      onBand((was) => ({
+        hosts: was.hosts.includes(key) ? was.hosts.filter((h) => h !== key) : [...was.hosts, key],
+      })),
+    [onBand],
+  )
   const setListed = useCallback((on: (was: boolean) => boolean) => onBand((was) => ({ listed: on(was.listed) })), [onBand])
   // The daemon's clock, ticking, so the band's axis ends at the same `now`
   // every age on the wall is measured against.
@@ -82,11 +91,11 @@ export function WebglBackend(props: Props) {
   const lastDimmed = useRef<ReadonlySet<string>>(new Set())
   const dimmed = useMemo(() => {
     const out = new Set<string>()
-    for (const i of items) if (!keptBy(i.bornAt, range) || !keptByKind(i, kinds)) out.add(i.id)
+    for (const i of items) if (!keptBy(i.bornAt, range) || !keptByKind(i, kinds) || !keptByHost(i, hosts)) out.add(i.id)
     if (sameIds(out, lastDimmed.current)) return lastDimmed.current
     lastDimmed.current = out
     return out
-  }, [items, range, kinds])
+  }, [items, range, kinds, hosts])
 
   const { closing, openItem, answer, dismissInLightbox } = useReplies(card, dispatch, dismiss)
   const resetView = useResetView(props, dispatch, setBackedOff)
@@ -211,6 +220,8 @@ export function WebglBackend(props: Props) {
           onSort={setSort}
           kinds={kinds}
           onKind={onKind}
+          hosts={hosts}
+          onHost={onHost}
         />
       )}
       <ResetView sidebarOpen={sidebarOpen} onReset={resetView} />

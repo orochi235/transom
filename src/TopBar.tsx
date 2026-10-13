@@ -5,6 +5,7 @@ import { Panel, PanelRow, PanelRows } from '@/panel/index.ts'
 import { ago } from '@/age.ts'
 import { BUCKETS, bucketRange, filterFrom, histogram, resolve, spanOf, type Filter } from '@/nav/time-filter.ts'
 import { kindTally, type KindKey } from '@/nav/kind-filter.ts'
+import { hostTally } from '@/nav/host-filter.ts'
 import { SORTS, type SortKey } from '@/nav/sort.ts'
 import type { Disk, WallItem } from '@shared/protocol.ts'
 import type { StackParams } from '@/params.ts'
@@ -28,6 +29,8 @@ export function TopBar({
   onSort,
   kinds,
   onKind,
+  hosts,
+  onHost,
   where,
   whereColor,
   arrangement,
@@ -54,6 +57,9 @@ export function TopBar({
   kinds: ReadonlySet<KindKey>
   /** One kind turned on or off; the band never sets the whole set. */
   onKind: (key: KindKey) => void
+  /** The sending Macs the wall is narrowed to. Empty is every Mac. */
+  hosts: ReadonlySet<string>
+  onHost: (key: string) => void
   /** The zone the view is inside, or null for the wall itself. */
   where: string | null
   /** That zone's project color, where it has one. The wall's own accent
@@ -85,6 +91,7 @@ export function TopBar({
 }) {
   const bornAts = useMemo(() => items.map((i) => i.bornAt), [items])
   const tally = useMemo(() => kindTally(items), [items])
+  const senders = useMemo(() => hostTally(items, hosts), [items, hosts])
   const span = useMemo(() => spanOf(bornAts, now), [bornAts, now])
   const bins = useMemo(() => histogram(bornAts, span, BINS), [bornAts, span])
   const tallest = Math.max(1, ...bins)
@@ -241,6 +248,24 @@ export function TopBar({
               >
                 <span>{kind.label}</span>
                 <span className="topbar__count">{kind.count}</span>
+              </PanelRow>
+            ))}
+          </PanelRows>
+        </Panel>
+      )}
+
+      {senders.length > 0 && (
+        <Panel name="from" tight>
+          <PanelRows>
+            {senders.map((host) => (
+              <PanelRow
+                key={host.key}
+                className="topbar__kind"
+                selected={hosts.has(host.key)}
+                onSelect={() => onHost(host.key)}
+              >
+                <span>{host.label}</span>
+                <span className="topbar__count">{host.count}</span>
               </PanelRow>
             ))}
           </PanelRows>
