@@ -60,6 +60,8 @@ export default defineConfig({
     // `::` is the only value that answers on both: `0.0.0.0` is IPv4 only.
     host: '::',
     strictPort: true,
+    // vite answers 403 to a Host it was not told about, and a `wall:` link names the wall's Mac.
+    allowedHosts: ['.local'],
     proxy: { '/img': proxy, '/orig': proxy, '/page': proxy, '/api': proxy, '/ws': proxy },
   },
 })
