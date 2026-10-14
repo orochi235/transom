@@ -4,9 +4,13 @@
   border-top: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
 }
 
+.params__group[open] {
+  padding-bottom: 8px;
+}
+
 .params__groupName {
   cursor: pointer;
-  padding: 3px 0;
+  padding: 4px 0;
   color: var(--muted);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -21,7 +25,7 @@
   display: flex;
   gap: 4px;
   align-items: center;
-  margin-top: 6px;
+  margin-bottom: 8px;
 }
 
 .params__button {
@@ -47,10 +51,23 @@
   display: none;
 }
 
-
 /* A bare `Slider` has no width of its own — `SliderRow` was giving it one.
    The readout sits after the track, so the track takes what is left. */
 .params__slider {
   flex: 1;
   min-width: 0;
+}
+
+/* A floor rather than the kit's `--wzl-params-label-width`, which is a fixed
+   size: most tracks start on one line, and a label longer than the column
+   pushes its own track instead of running over it. Matched on the substring
+   because CSS modules hash around the base name. */
+.params__group [class*='rowInline'] > [class*='rowLabel'] {
+  min-inline-size: 7.25em;
+}
+
+/* The kit pairs color rows two to a line, and at a panel's width the longer
+   names run under the next row's swatch. */
+.params__group [class*='rowColor'] {
+  grid-column: 1 / -1;
 }

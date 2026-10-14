@@ -108,8 +108,6 @@ function Flags({
   )
 }
 
-
-
 /** What a plan did, in the words of the things that happened. */
 const readPlan = (level: Level, plan: Plan, opened: boolean): string => {
   const did = [
@@ -149,7 +147,7 @@ function SynthButtons() {
   }
 
   return (
-    <>
+    <div className="sidebar__cluster">
       <div className="sidebar__buttons">
         <button type="button" className="params__button" onClick={() => void make('group', takes)}>
           group of {takes}
@@ -176,7 +174,7 @@ function SynthButtons() {
       <p className="sidebar__empty">
         {said ?? 'real sends into the debug zone, on a 20m TTL'}
       </p>
-    </>
+    </div>
   )
 }
 
@@ -203,7 +201,7 @@ function AlertButtons({
   }
 
   return (
-    <>
+    <div className="sidebar__cluster">
       <div className="sidebar__buttons">
         {LEVELS.map((level) => (
           <button
@@ -217,7 +215,7 @@ function AlertButtons({
         ))}
       </div>
       <p className="sidebar__empty">{said ?? 'fires the real treatment — the daemon runs it'}</p>
-    </>
+    </div>
   )
 }
 
@@ -324,22 +322,24 @@ export function Sidebar({
       </Section>
 
       <Section name="debug" storageKey="transom.sidebar.debug.v1">
-        <div className="sidebar__buttons">
-          <button type="button" className="params__button" onClick={onGenerate}>
-            flag 8 random
-          </button>
-          <button
-            type="button"
-            className="params__button"
-            onClick={onClearFakes}
-            disabled={fakeCount === 0}
-          >
-            clear {fakeCount > 0 ? fakeCount : ''}
-          </button>
+        <div className="sidebar__cluster">
+          <div className="sidebar__buttons">
+            <button type="button" className="params__button" onClick={onGenerate}>
+              flag 8 random
+            </button>
+            <button
+              type="button"
+              className="params__button"
+              onClick={onClearFakes}
+              disabled={fakeCount === 0}
+            >
+              clear {fakeCount > 0 ? fakeCount : ''}
+            </button>
+          </div>
+          <p className="sidebar__empty">
+            fabricated in this tab only — the daemon never sees them
+          </p>
         </div>
-        <p className="sidebar__empty">
-          fabricated in this tab only — the daemon never sees them
-        </p>
         <AlertButtons items={items} onOpen={onOpen} />
         <SynthButtons />
         <label className="sidebar__toggle">
