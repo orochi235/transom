@@ -7,11 +7,11 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
 import { delaminate } from 'delamin8r'
-import { ParamsBody } from '@/Params.tsx'
-import { controlsOf } from '@/params.controls.ts'
-import { categoriesFor } from '@/params.tabs.ts'
+import { ParamsForm } from '@/ParamsForm.tsx'
+import { ParamsTransfer } from '@/ParamsTransfer.tsx'
 import type { StackParams } from '@/params.ts'
 import { GENERAL, prefsTabs, resolveTab, stepTab } from '@/prefs.tabs.ts'
+import { SHEET } from '@/schema/sheet.ts'
 import { closesDialog } from '@/scrim.ts'
 import { WallBody } from '@/WallBody.tsx'
 import './prefs.css'
@@ -27,10 +27,10 @@ const readTab = (): string | null => {
 }
 
 /**
- * Preferences over the wall. The column down the left lists the surfaces —
- * params is the only one today — with six areas of the wall nested under it,
- * so the sheet shows one area at a time or the whole set in columns. The
- * controls are the corner panel's own, so the two cannot drift apart.
+ * Preferences over the wall. The column down the left lists the pages of the
+ * sheet's schema (`SHEET`) with every area of the wall nested under `params`,
+ * so the sheet shows one page at a time or the whole set in columns. Both are
+ * drawn by the form the corner panel uses, so the two cannot drift apart.
  */
 export function Prefs({
   params,
@@ -46,10 +46,7 @@ export function Prefs({
   onTtl: (ms: number) => void
   onClose: () => void
 }) {
-  const tabs = useMemo(
-    () => prefsTabs(categoriesFor(controlsOf(params).map((control) => control.path))),
-    [params],
-  )
+  const tabs = useMemo(() => prefsTabs(SHEET), [])
   const [tabId, setTabId] = useState(() => resolveTab(tabs, readTab()).id)
   const tab = resolveTab(tabs, tabId)
   const stage = useRef<HTMLDivElement>(null)
@@ -59,9 +56,8 @@ export function Prefs({
   const [fits, setFits] = useState(false)
   const look = params.prefs
 
-  // Whether this area needs the scroller at all. Only `params` — every group
-  // at once — overflows, and it overflows sideways, since a multicol box with
-  // a fixed height spills into more columns rather than down the page.
+  // Whether this page needs the scroller at all. Most fit; `params`, every
+  // group at once, does not.
   useLayoutEffect(() => {
     const el = body.current
     if (!el) return
@@ -199,7 +195,8 @@ export function Prefs({
           data-fits={fits ? '' : undefined}
         >
           {tab.id === GENERAL && <WallBody ttlMs={ttlMs} onTtl={onTtl} />}
-          <ParamsBody params={params} onChange={onChange} expanded only={tab.category} />
+          <ParamsTransfer params={params} onChange={onChange} />
+          <ParamsForm schema={tab.page} params={params} onChange={onChange} />
         </div>
       </div>
     </div>

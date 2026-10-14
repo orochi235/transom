@@ -1,11 +1,13 @@
-import { pileDefaults, type PileParams } from '@/params/pile.ts'
-import { attentionDefaults, type AttentionParams } from '@/params/attention.ts'
-import { arrangementDefaults, type ArrangementParams } from '@/params/arrangement.ts'
-import { cameraDefaults, type CameraParams } from '@/params/camera.ts'
-import { parallaxDefaults, type ParallaxParams } from '@/params/parallax.ts'
-import { sceneDefaults, type SceneParams } from '@/params/scene.ts'
-import { colorDefaults, type ColorParams } from '@/params/colors.ts'
-import { lodDefaults, type LodParams } from '@/params/lod.ts'
+import type { PileParams } from '@/params/pile.ts'
+import type { AttentionParams } from '@/params/attention.ts'
+import type { ArrangementParams } from '@/params/arrangement.ts'
+import type { CameraParams } from '@/params/camera.ts'
+import type { ParallaxParams } from '@/params/parallax.ts'
+import type { SceneParams } from '@/params/scene.ts'
+import type { ColorParams } from '@/params/colors.ts'
+import type { LodParams } from '@/params/lod.ts'
+import { defaultsOf } from '@/schema/defaults.ts'
+import { PARAMS } from '@/schema/params.ts'
 
 export type { LodTier } from '@/params/lod.ts'
 export type { Projection } from '@/params/camera.ts'
@@ -21,16 +23,9 @@ export type StackParams = PileParams
   & ColorParams
   & LodParams
 
-export const defaultParams: StackParams = {
-  ...pileDefaults,
-  ...attentionDefaults,
-  ...arrangementDefaults,
-  ...cameraDefaults,
-  ...parallaxDefaults,
-  ...sceneDefaults,
-  ...colorDefaults,
-  ...lodDefaults,
-}
+/** The schema holds each param's default beside its range and its name, so
+ *  the type above is the only other place the shape is written down. */
+export const defaultParams = defaultsOf(PARAMS) as StackParams
 
 /**
  * The demo as a tile embedded in another page (`?embed`), which is a preview

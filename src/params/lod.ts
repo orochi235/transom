@@ -21,30 +21,3 @@ export type LodParams = {
     revealFadeMs: number
   }
 }
-
-export const lodDefaults: LodParams = {
-  lod: {
-    tiers: [
-      {
-        maxRank: 1,
-        edge: 512,
-      },
-      {
-        maxRank: 8,
-        edge: 128,
-      },
-      {
-        maxRank: 40,
-        edge: 32,
-      },
-      {
-        maxRank: Number.MAX_SAFE_INTEGER,
-        edge: 0,
-      },
-    ],
-    budgetBytes: 268435456,
-    rankCap: 88,
-    revealHoldMs: 1200,
-    revealFadeMs: 250,
-  },
-}

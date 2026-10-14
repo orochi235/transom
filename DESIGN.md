@@ -696,25 +696,33 @@ against every arrangement.
   `gl_FragColor` does neither, so `Color.set` renders several stops too dark.
   `srgb()` in `sky.ts` keeps the value raw. The zone hatch still uses
   `Color.set` and reads darker than its palette entry says.
-- **Preferences have two surfaces** — the corner panel and a sheet on `,`, and
+- **Params are a schema, and both preference surfaces are drawn from it.**
+  `src/schema/params.ts` is a `@weasel-js/prefs` schema in the params' own
+  shape: a group per key, and for each param its name, its default, and its
+  range, unit, or options. `defaultParams` is built from it, so the types in
+  `src/params/` are the only other place the shape is written down. A list (the
+  LOD tiers, the camera's margins) is a group keyed `0`, `1`, and so on. Two
+  kinds are the wall's own, drawn by renderers in `src/ParamsForm.tsx`:
+  `choice`, one of a few numbers, and `backdrop`, the swatch grid with the
+  ruling beside it, whose three `zones.hatch*` leaves are hidden so they are
+  not drawn twice.
+- **Preferences have two surfaces** — the corner panel and a sheet on `⌘,`, and
   a shift-double-click on any zone's bare backdrop opens the sheet too (behind
-  shift because a plain click there now opens the zone's top card) —
-  rendering one `ParamsBody` so they cannot drift while prefs is still a copy
-  of params. The sheet's left column leads with `general`, then lists surfaces
-  with six areas of the wall nested under `params` — piles, cards, flags,
-  zones & sky, camera & input, chrome. A leaf lands in an area by the longest
-  prefix of its path in `src/params.tabs.ts`, so `lod` splits and `colors`
-  dissolves into the areas of what it colors while every path stays where a
-  saved set expects it. `params` itself shows every group in columns. The
-  modal is a delamin8r window, tuned by the `prefs` group.
-- **`general` is the tab for what you want first, not for one part of the
-  wall.** It is absent from `CATEGORIES`, so it never nests under `params`, and
-  its leaves are drawn from wherever they live — `general.parallax`,
-  `typeface.chrome`, `camera.projection` — by the same longest-prefix rule,
-  which takes them out of the area they would otherwise sit in rather than
-  showing them twice. It also carries the daemon's lifetime, the one setting in
-  the sheet that holds for every browser rather than this one; that retired the
-  `wall` tab, whose only row it was.
+  shift because a plain click there now opens the zone's top card). The corner
+  panel draws the schema as it stands, a fold per top-level group. The sheet's
+  pages are `src/schema/sheet/`, each a layout of pointers into the schema, so
+  `lod` splits across pages and `colors` dissolves into the pages of what it
+  colors while every path stays where a saved set expects it. A new param shows
+  in the corner panel at once and on a sheet page only when a page points at
+  it; a test fails until one does. The sheet's left column leads with `general`,
+  then `params`, which shows every group in columns, with the other pages
+  nested under it. The modal is a delamin8r window, tuned by the `prefs` group.
+- **`general` is the page for what you want first, not for one part of the
+  wall.** It never nests under `params`, and it points at params from wherever
+  they live — `general.parallax`, `typeface.chrome`, `camera.projection` —
+  which no other page then points at, so none shows twice. It also carries the
+  daemon's lifetime, the one setting in the sheet that holds for every browser
+  rather than this one; that retired the `wall` tab, whose only row it was.
 - **`general.parallax` gates every delamin8r surface** — the band, the card
   menu, the `?` card and this sheet — over each surface's own flag, so a
   surface tuned off stays off when the gate comes back on. The menu and the `?`

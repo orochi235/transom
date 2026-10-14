@@ -49,17 +49,22 @@
   --wzl-space-2: 4px;
   --wzl-space-3: 6px;
   --wzl-space-4: 8px;
+  --wzl-space-5: 12px;
+  --wzl-space-6: 16px;
   --wzl-font-weight-medium: 500;
   /* The wall scales its whole chrome from one dial, so a size in px here would
      be the one thing that did not move with it. */
   --wzl-font-size: inherit;
+  /* A group nested in a form is a box set in from its neighbors with a rule
+     down its leading edge. Unset, the box has no padding and no rule. */
+  --subpanel-inset-start: 8px;
+  --subpanel-inset-end: 8px;
+  --wzl-border-on-sunken: color-mix(in srgb, var(--muted) 40%, transparent);
 }
 
-/* The row's readout is sized `calc(5em - 24px)` against a larger base font than
-   the wall's 11px and clips at `overflow: clip`, so a four-decimal value loses
-   its last digit. Matched on the substring because CSS modules hash around the
-   base name rather than replacing it. */
-.wzl-skin [class*='readout'] {
-  width: 4.8em;
-  min-width: 4.8em;
+/* The sunken surface is tuned for a field, which is small. A form's nested
+   group wears the same token over a whole block of rows, where that much ink
+   reads as a slab. */
+.params__form {
+  --wzl-surface-sunken: color-mix(in srgb, var(--ink) 7%, transparent);
 }

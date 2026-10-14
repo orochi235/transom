@@ -50,25 +50,3 @@ export type ParallaxParams = {
     swing: number
   }
 }
-
-export const parallaxDefaults: ParallaxParams = {
-  menu: {
-    mode: 'tilt',
-    step: 16,
-    swing: 40,
-    tilt: 12,
-  },
-  band: {
-    shown: true,
-    parallax: true,
-    step: 20,
-    perspective: 500,
-    swing: 80,
-  },
-  prefs: {
-    parallax: true,
-    step: 12,
-    perspective: 1400,
-    swing: 420,
-  },
-}

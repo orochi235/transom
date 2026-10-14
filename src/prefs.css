@@ -114,8 +114,6 @@
   color: var(--ink);
 }
 
-/* The controls come from the params panel, which lays itself out in one narrow
-   column; the extra width here goes to columns rather than to longer rows. */
 .prefs__body {
   min-height: 0;
   overflow: auto;
@@ -130,14 +128,18 @@
   overflow: visible;
 }
 
-/* A width rather than a count, so the sheet fills three columns when it has
-   the room and folds to fewer on a narrow window. An area with one group is
-   one column, which keeps a slider from stretching the width of the sheet. */
-.prefs__body {
-  columns: 290px;
+/* The form's groups in columns: a width rather than a count, so the sheet
+   fills three when it has the room and folds to fewer on a narrow window, and
+   a page with one group is one column, which keeps a slider from stretching
+   the width of the sheet. Matched on the substring because CSS modules hash
+   around the base name. */
+.prefs__body .params__form > [class*='rows'] {
+  display: block;
+  columns: 330px;
   column-gap: 22px;
 }
 
-.prefs__body > * {
+.prefs__body .params__form > [class*='rows'] > * {
   break-inside: avoid;
+  margin: 0 0 10px;
 }

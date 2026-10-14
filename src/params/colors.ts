@@ -46,30 +46,3 @@ export type ColorParams = {
     danger: string
   }
 }
-
-export const colorDefaults: ColorParams = {
-  colors: {
-    cardEdge: '#22d3ee',
-    cardBlank: '#0b1020',
-    attentionLook: '#00ff00',
-    attentionSoon: '#ffff00',
-    attentionUrgent: '#ff8000',
-    attentionProblem: '#ff0000',
-    flagInk: '#000000',
-    chipFill: '#000000',
-    chipIcon: '#ffe58f',
-    chipInk: '#ffffff',
-    zoneIdle: '#64748b',
-    zoneFocus: '#38bdf8',
-    zoneBackdrop: '#64748b',
-    label: '#e2e8f0',
-    skyBase: '#05060a',
-    skyGlow: '#2b3f6b',
-    bg: '#0a0a0c',
-    scrim: '#000000',
-    ink: '#e2e8f0',
-    muted: '#94a3b8',
-    accent: '#38bdf8',
-    danger: '#e0796b',
-  },
-}

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { usePersistedFlag } from '@/usePersistedFlag.ts'
 import { actions, type Plan } from '@/actions.ts'
 import type { Dispatch, SetStateAction } from 'react'
-import { ParamsBody } from '@/Params.tsx'
+import { ParamsPanel } from '@/ParamsPanel.tsx'
 import { ago } from '@/age.ts'
 import { ALERTS, emphasisAt, LEVELS, type Level } from '@shared/attention.ts'
 import { sortFlags, type SortKey } from '@/nav/sort.ts'
@@ -349,7 +349,7 @@ export function Sidebar({
       </Section>
 
       <Section name="params" storageKey="transom.sidebar.params.v1">
-        <ParamsBody params={params} onChange={onParams} />
+        <ParamsPanel params={params} onChange={onParams} />
       </Section>
     </aside>
   )

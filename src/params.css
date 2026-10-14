@@ -51,23 +51,42 @@
   display: none;
 }
 
-/* A bare `Slider` has no width of its own — `SliderRow` was giving it one.
-   The readout sits after the track, so the track takes what is left. */
-.params__slider {
-  flex: 1;
-  min-width: 0;
-}
-
-/* A floor rather than the kit's `--wzl-params-label-width`, which is a fixed
-   size: most tracks start on one line, and a label longer than the column
-   pushes its own track instead of running over it. Matched on the substring
+/* A fold's root holds its one group unnamed, and the kit draws any nested
+   group as a sunken box. The fold is the box already. Matched on the substring
    because CSS modules hash around the base name. */
-.params__group [class*='rowInline'] > [class*='rowLabel'] {
-  min-inline-size: 7.25em;
+.params__group > .params__form > [class*='rows'] > [class*='subpanel'] {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
 }
 
-/* The kit pairs color rows two to a line, and at a panel's width the longer
-   names run under the next row's swatch. */
-.params__group [class*='rowColor'] {
-  grid-column: 1 / -1;
+/* The kit sizes a readout to its own digits, so every row's track would end
+   somewhere else. A fixed number column and a fixed slot for the unit after
+   it keep the tracks one length and the digits in one column, unit or none. */
+.params__form [class*='readoutGroup'] {
+  display: inline-flex;
+  justify-content: flex-start;
+  inline-size: 9.5ch;
+}
+
+.params__form [class*='readoutInput'] {
+  inline-size: 6.5ch;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The kit gives the control three fifths of a row and lets the name run under
+   it. The names here are long and the controls are not, so the split moves
+   toward the name, and one too long for its share is cut short, not overlaid. */
+.params__form [class*='rowControl'] {
+  flex-basis: 54%;
+}
+
+.params__form [class*='rowInline'] > [class*='rowLabel'] {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

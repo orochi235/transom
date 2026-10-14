@@ -61,29 +61,3 @@ export type CameraParams = {
     dragDepthPerNotch: number
   }
 }
-
-export const cameraDefaults: CameraParams = {
-  camera: {
-    projection: 'orthographic',
-    fovDeg: 35,
-    standoff: 18,
-    yawDeg: 23.8720703125,
-    pitchDeg: -15.578125,
-    margins: [
-      1.08,
-      1.12,
-    ],
-    homeMargin: 1.08,
-    zoomOutRoom: 1.5,
-    moveMs: 520,
-  },
-  nav: {
-    wheelThreshold: 60,
-    pinchThreshold: 8,
-    quietMs: 90,
-    floorMs: 800,
-    orbit: true,
-    dragCardSetsStep: true,
-    dragDepthPerNotch: 0.0006,
-  },
-}

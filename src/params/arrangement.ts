@@ -58,24 +58,3 @@ export type ArrangementParams = {
     lanes: number
   }
 }
-
-export const arrangementDefaults: ArrangementParams = {
-  zoneGrid: {
-    gap: 0.425,
-    orientation: 'fit',
-    reverseX: false,
-    reverseY: false,
-    minCells: 4,
-    moveMs: 520,
-  },
-  inbox: {
-    mode: 'grid',
-    gap: 0.02,
-    maxSide: 0.45,
-    floor: 0.07,
-    moveMs: 520,
-    big: 1,
-    mid: 4,
-    lanes: 10,
-  },
-}
