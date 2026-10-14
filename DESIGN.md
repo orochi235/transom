@@ -723,6 +723,13 @@ against every arrangement.
   which no other page then points at, so none shows twice. It also carries the
   daemon's lifetime, the one setting in the sheet that holds for every browser
   rather than this one; that retired the `wall` tab, whose only row it was.
+- **The schema is edited on a page of its own, and nothing there writes to
+  source.** `/schema.html`, served by the dev server and left out of the build,
+  is weasel's `AssetEditor` over the params schema and the sheet's pages. A
+  draft lives in that browser's `localStorage`. Send posts every changed asset
+  to the dev server, which appends one line to `.transom/schema-changes.jsonl`
+  (ignored by git, latest twenty kept) for the agent in this checkout to apply;
+  `CLAUDE.md` says how.
 - **`general.parallax` gates every delamin8r surface** — the band, the card
   menu, the `?` card and this sheet — over each surface's own flag, so a
   surface tuned off stays off when the gate comes back on. The menu and the `?`

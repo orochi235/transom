@@ -11,7 +11,7 @@ import { PARAMS } from '@/schema/params.ts'
 import './params.css'
 
 /** The controls for the kinds the wall draws itself. */
-function renderersFor(
+export function renderersFor(
   params: StackParams,
   onChange: (next: StackParams) => void,
 ): Record<string, PrefRenderer> {

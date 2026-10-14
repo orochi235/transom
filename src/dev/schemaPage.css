@@ -1,0 +1,33 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.schema-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--wzl-space-3, 0.75rem);
+  box-sizing: border-box;
+  background: var(--wzl-bg);
+  color: var(--wzl-fg);
+}
+
+.schema-page__editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.schema-page__title {
+  margin: 0;
+  font-size: var(--wzl-font-size-xl);
+  font-weight: 200;
+  white-space: nowrap;
+}
+
+.schema-page__title strong {
+  font-weight: 700;
+}

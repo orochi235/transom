@@ -25,6 +25,7 @@
     "@weasel-js/core": "^1.10.0",
     "@weasel-js/labkit": "^1.10.0",
     "@weasel-js/prefs": "^1.10.0",
+    "@weasel-js/theme": "^1.10.0",
     "@weasel-js/ui": "^1.10.0",
     "ajv": "^8.20.0",
     "chokidar": "^5.0.0",
