@@ -3,6 +3,7 @@ import type { Arrangement } from '@/arrangements/index.ts'
 import type { MenuAt } from '@/menu/CardMenu.tsx'
 import type { BandState } from '@/nav/band-state.ts'
 import type { Plan } from '@/nav/Minimap.tsx'
+import type { ClientStale } from '@/dev/clientStale.ts'
 import type { SortKey } from '@/nav/sort.ts'
 import type { StackParams } from '@/params.ts'
 import type { ViewAction, ViewState } from '@/view-state.ts'
@@ -34,6 +35,8 @@ export type Props = {
    *  daemon does not reload, so this is the only sign a feature is missing
    *  because the process predates it rather than because it is broken. */
   stale: boolean
+  /** Files the dev server never heard had changed, so this page predates them. */
+  pageStale: ClientStale | null
   disk: Disk | null
   /** What the band is set to, restored from the last visit. Held above this
    *  backend because the arrangement is one of its fields and the cycle keys

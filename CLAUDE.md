@@ -21,9 +21,8 @@ daemon started from disagrees with its code on disk (`/api/code`). Both are the
 last commit touching `server/`, `shared/` or the package files, so a
 client-only commit never trips it. Vite reloads itself, so the client half is
 rarely the stale one — but it only reloads on file events, and macOS has
-stopped delivering them once (`DESIGN.md`, *Open questions*). If an edit under
-`src/` does not show, `launchctl kickstart -k gui/$(id -u)/tech.michaelbaker.transom.client`
-catches the page up to the disk.
+stopped delivering them once. When it misses one the band shows `page stale`
+and `doctor` names the files; `transom cycle` catches the page up to the disk.
 
 Installed from Homebrew the wall is one service instead,
 `tech.michaelbaker.transom`, running the keg and not this checkout; `doctor`

@@ -9,6 +9,7 @@ import { hostTally } from '@/nav/host-filter.ts'
 import { SORTS, type SortKey } from '@/nav/sort.ts'
 import type { Disk, WallItem } from '@shared/protocol.ts'
 import type { StackParams } from '@/params.ts'
+import type { ClientStale } from '@/dev/clientStale.ts'
 import './topbar.css'
 
 const BINS = 64
@@ -38,6 +39,7 @@ export function TopBar({
   offWall = 0,
   connected,
   stale,
+  pageStale,
   disk,
   plan,
   axes,
@@ -75,6 +77,8 @@ export function TopBar({
   /** The daemon is running other code than this wall. Said out loud because
    *  every symptom of it looks like a broken feature instead. */
   stale: boolean
+  /** Files the dev server never heard had changed, so this page predates them. */
+  pageStale: ClientStale | null
   /** What the wall holds on disk against its cap; null until the daemon says. */
   disk: Disk | null
   /** The wall's plan view and its axis gizmo. Passed in rather than built
@@ -312,6 +316,14 @@ export function TopBar({
           {connected && stale && (
             <span className="topbar__stale" title="The daemon is running a different build. Run npm run daemon:restart.">
               daemon stale
+            </span>
+          )}
+          {pageStale && (
+            <span
+              className="topbar__stale"
+              title={`The dev server missed edits to ${pageStale.files.join(', ')}${pageStale.count > pageStale.files.length ? ` and ${pageStale.count - pageStale.files.length} more` : ''}. Run transom cycle.`}
+            >
+              page stale
             </span>
           )}
           {connected && disk?.over && (

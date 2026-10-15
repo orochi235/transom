@@ -28,6 +28,7 @@ function band(items: WallItem[], hosts: string[] = []) {
       count={items.length}
       connected
       stale={false}
+      pageStale={null}
       disk={null}
       look={defaultParams.band}
       allowParallax={false}

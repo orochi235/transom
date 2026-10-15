@@ -3,6 +3,7 @@ import { ALERTS } from '@shared/attention.ts'
 import type { Alert, Disk, WallItem, ZoneSettings } from '@shared/protocol.ts'
 import { agree, type Build } from '@shared/build.ts'
 import { actions, type ZonePatch } from '@/actions.ts'
+import { CLIENT_STALE_ROUTE, type ClientStale } from '@/dev/clientStale.ts'
 import { subscribe } from '@/transport.ts'
 
 export type { ZonePatch }
@@ -30,6 +31,10 @@ export type Wall = {
    *  both have been heard from, and always in demo mode, where there is no
    *  daemon at all. */
   daemonStale: boolean
+  /** Files the dev server is serving older copies of than the disk holds,
+   *  because it never heard they changed. Null when it has made no claim:
+   *  in demo mode, or a page the daemon serves from a build. */
+  clientStale: ClientStale | null
   /** What the wall holds on disk against its cap. Null until the daemon has said. */
   disk: Disk | null
   /** The last arrival whose level asks to be opened on sight. Held rather than
@@ -60,6 +65,7 @@ export function useWall(): Wall {
   const [daemonBuild, setDaemonBuild] = useState<Build | null>(null)
   const [disk, setDisk] = useState<Disk | null>(null)
   const [daemonCode, setDaemonCode] = useState<Build | null>(null)
+  const [clientStale, setClientStale] = useState<ClientStale | null>(null)
   const [announce, setAnnounce] = useState<WallItem | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
   const clockOffset = useRef(0)
@@ -86,6 +92,17 @@ export function useWall(): Wall {
     const timer = setInterval(read, CODE_POLL_MS)
     return () => clearInterval(timer)
   }, [connected])
+
+  useEffect(() => {
+    if (__TRANSOM_DEMO__) return
+    const read = () =>
+      fetch(CLIENT_STALE_ROUTE)
+        .then((res) => (res.ok ? (res.json() as Promise<ClientStale>) : null))
+        .then(setClientStale, () => setClientStale(null))
+    void read()
+    const timer = setInterval(read, CODE_POLL_MS)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(
     () =>
@@ -213,6 +230,7 @@ export function useWall(): Wall {
     connected,
     disk,
     daemonStale: daemonBuild !== null && daemonCode !== null && !agree(daemonBuild, daemonCode),
+    clientStale: clientStale && clientStale.count > 0 ? clientStale : null,
     announce,
     alerts,
     dismissAlert,

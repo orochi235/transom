@@ -27,6 +27,7 @@ function band(disk: Disk | null) {
       count={0}
       connected
       stale={false}
+      pageStale={null}
       disk={disk}
       look={defaultParams.band}
       allowParallax={false}

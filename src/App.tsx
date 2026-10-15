@@ -45,6 +45,7 @@ export function App() {
     clockOffset,
     connected,
     daemonStale,
+    clientStale,
     disk,
     announce,
     alerts,
@@ -123,6 +124,7 @@ export function App() {
         announce={announce}
         connected={connected}
         stale={daemonStale}
+        pageStale={clientStale}
         disk={disk}
         band={band}
         onBand={setBand}

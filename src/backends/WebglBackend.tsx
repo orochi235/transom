@@ -194,6 +194,7 @@ export function WebglBackend(props: Props) {
           onList={toggleList}
           connected={props.connected}
           stale={props.stale}
+          pageStale={props.pageStale}
           disk={props.disk}
           look={props.params.band}
           allowParallax={props.params.general.parallax}

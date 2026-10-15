@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { CLIENT_PORT, DAEMON_PORT } from './server/ports.ts'
+import { clientStale } from './src/dev/clientStale.vite.ts'
 import { schemaInbox } from './src/dev/schemaInbox.vite.ts'
 
 // Source, not dist, for a sibling checkout: windease and delamin8r are
@@ -22,7 +23,11 @@ const proxy = { target: daemon, ws: true, changeOrigin: false, xfwd: true }
 
 
 export default defineConfig({
-  plugins: [react(), schemaInbox({ root: fileURLToPath(new URL('.', import.meta.url)) })],
+  plugins: [
+    react(),
+    schemaInbox({ root: fileURLToPath(new URL('.', import.meta.url)) }),
+    clientStale({ root: fileURLToPath(new URL('.', import.meta.url)) }),
+  ],
   // A literal, not a lookup on `import.meta.env`: the bundler has to see `false`
   // to drop the demo branch, and with it the daemon and forty pictures. An
   // env var read at runtime keeps all of it in the ordinary bundle.

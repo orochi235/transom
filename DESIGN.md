@@ -1432,13 +1432,6 @@ everything a node sends a remote wall goes through `curl`: `post`, `ask`,
   goes back to ordinary. A thread would let the agent follow up on the same
   card, and needs a history in the lightbox and a way to mark it resolved. Worth
   it only if follow-ups keep arriving as new cards.
-- **A stale client has no signal of its own.** Vite only reloads when macOS
-  delivers file events, and on Oct 13 2026 it delivered none to any process:
-  `fseventsd` sat at 99% CPU and neither `fs.watch` nor the `fsevents` module
-  saw a write anywhere on the disk. The client agent went on serving modules
-  from before a pull, and restarting it only caught it up once. `doctor` and
-  the `daemon stale` chip compare the daemon's build and say nothing about
-  the page.
 - **Multi-monitor.** Does a zone ever span displays, or is one board one screen?
 - **Where unsent marks go when their session has gone — TODO, deliberately
   unbuilt.** Today a drawing whose sender has exited stays on its card until
@@ -1476,6 +1469,15 @@ same ports, so each refuses or retires the other.
 beside `libexec`, and from a keg `transom up`, `down` and `install` call
 `brew services`. From a keg `install` also removes the pair of agents, which is
 how a wall started by a release before the service moves onto it.
+
+**A checkout's page can go stale without its process going stale.** Vite learns
+of an edit only from a file event, and on Oct 13 2026 macOS delivered none to
+any process (`fseventsd` at 99% CPU), so the client went on serving modules from
+before a pull. The client's vite plugin (`src/dev/clientStale.vite.ts`) notes
+each file's mtime as it transforms it and forgets the file when the watcher
+reports it; a file whose mtime moves with no word from the watcher shows the
+band's `page stale` chip, naming it, and a `STALE` line in `doctor`. `transom
+cycle` is the fix. A keg's page is a build and makes no claim.
 
 ## Build order
 

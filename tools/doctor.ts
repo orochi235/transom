@@ -10,6 +10,7 @@
 import { execFileSync } from 'node:child_process'
 import { agree, DAEMON_PATHS, describe, type Build } from '@shared/build.ts'
 import { stamp } from '../server/build.ts'
+import { CLIENT_STALE_ROUTE, type ClientStale } from '../src/dev/clientStale.ts'
 import { CLIENT_PORT as CLIENT, DAEMON_PORT as DAEMON } from '../server/ports.ts'
 
 const run = (cmd: string, ...args: string[]): string => {
@@ -30,6 +31,15 @@ const daemonBuild = async (): Promise<Build | null> => {
   try {
     const res = await fetch(`http://localhost:${DAEMON}/api/build`)
     return res.ok ? ((await res.json()) as Build) : null
+  } catch {
+    return null
+  }
+}
+
+const clientStale = async (): Promise<ClientStale | null> => {
+  try {
+    const res = await fetch(`http://localhost:${CLIENT}${CLIENT_STALE_ROUTE}`)
+    return res.ok ? ((await res.json()) as ClientStale) : null
   } catch {
     return null
   }
@@ -86,6 +96,11 @@ const main = async () => {
   console.log('')
   console.log(`client :${CLIENT}   ${clientPid ? `pid ${clientPid}` : 'NOT RUNNING'}`)
   if (clientPid) console.log(`               started ${startedAt(clientPid)}`)
+  const page = keg ? null : await clientStale()
+  if (page && page.count > 0) {
+    console.log(`               STALE — missed edits to ${page.count} files: ${page.files.join(', ')}`)
+    console.log('               Fix: transom cycle')
+  }
   console.log(
     keg
       ? '               The page built into the keg, served by the daemon.'
