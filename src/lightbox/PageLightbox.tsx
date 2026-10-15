@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import '@/lightbox/page-lightbox.css'
 import { metaOf, statusOf } from '@/lightbox-meta.ts'
 import { sandboxFor } from '@/lightbox-sandbox.ts'
 import { KEY_MESSAGE } from '@shared/page-keys.ts'

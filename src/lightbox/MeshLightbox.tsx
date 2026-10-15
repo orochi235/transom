@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import '@/lightbox/mesh-lightbox.css'
 import { metaOf, statusOf } from '@/lightbox-meta.ts'
 import { actions } from '@/actions.ts'
 import { mountMesh } from '@/MeshView.ts'

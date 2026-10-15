@@ -1,0 +1,38 @@
+/* There is another take this way. Drawn only where one exists, so the pair
+   never points at nothing, and only for a group — an ordinary card's arrows page
+   the wall, which is the whole window and needs no hint. */
+.lightbox__step {
+  position: fixed;
+  z-index: 101;
+  top: 50%;
+  width: 22px;
+  height: min(40vh, 320px);
+  padding: 0;
+  border: 0;
+  transform: translateY(-50%);
+  background: color-mix(in srgb, var(--lb-accent, var(--accent)) 38%, transparent);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 120ms ease-out;
+}
+
+.lightbox__step:hover,
+.lightbox__step:focus-visible {
+  opacity: 1;
+}
+
+.lightbox__step--prev {
+  left: 0;
+  clip-path: polygon(100% 0, 100% 100%, 0 50%);
+}
+
+.lightbox__step--next {
+  right: 0;
+  clip-path: polygon(0 0, 0 100%, 100% 50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox__step {
+    transition: none;
+  }
+}

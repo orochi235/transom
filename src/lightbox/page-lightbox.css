@@ -1,0 +1,42 @@
+/* The whole surround closes a page, so it says so. The frame itself takes the
+   cursor back, because inside it the pointer belongs to the page. */
+.lightbox:has(> .lightbox__page) {
+  cursor: zoom-out;
+}
+
+/* One more chip in the meta row, at the other end of it: the same treatment as
+   the zone and the age, so it reads as the wall's furniture and not as
+   something the page drew. */
+.lightbox__close {
+  position: fixed;
+  z-index: 2;
+  top: 18px;
+  right: 24px;
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--scrim) 70%, transparent);
+  /* Full ink where the meta chips are dimmed: this is the one part of the row
+     that has to be found rather than read. */
+  color: var(--ink);
+  font: 500 calc(11px * var(--ui-type))/1.4 var(--chrome-face);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.lightbox__close:hover,
+.lightbox__close:focus-visible {
+  color: var(--lb-accent, var(--accent));
+}
+
+/* Inset rather than full-bleed: the meta line above and the caption below are
+   the wall's, and a page that filled the window would cover both. */
+.lightbox__page {
+  position: absolute;
+  inset: 48px 24px;
+  width: calc(100% - 48px);
+  height: calc(100% - 96px);
+  border: 0;
+  background: var(--bg);
+  cursor: default;
+}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import '@/lightbox/group-lightbox.css'
 import type { Take, WallItem } from '@shared/protocol.ts'
 import { countOf, nextOpen, posterTake } from '@shared/groups.ts'
 import { Ask } from '@/lightbox/Ask.tsx'

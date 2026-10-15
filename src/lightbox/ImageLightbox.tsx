@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent } from 'react'
+import '@/lightbox/image-lightbox.css'
 import { metaOf, statusOf } from '@/lightbox-meta.ts'
 import { actions } from '@/actions.ts'
 import { Markup, type Box, type MarkedUp } from '@/lightbox/Markup.tsx'

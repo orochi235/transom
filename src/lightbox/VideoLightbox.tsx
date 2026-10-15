@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import '@/lightbox/video-lightbox.css'
 import { metaOf, statusOf } from '@/lightbox-meta.ts'
 import { actions } from '@/actions.ts'
 import type { WallItem } from '@shared/protocol.ts'

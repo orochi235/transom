@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import '@/lightbox/ask.css'
 import type { Reply } from '@shared/protocol.ts'
 import { replyWords } from '@/asks.ts'
 

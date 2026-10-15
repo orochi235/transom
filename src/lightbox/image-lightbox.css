@@ -1,0 +1,115 @@
+/* The window, and the frame the pan is held inside. It covers the scrim rather
+   than sitting in the middle of it, because a pan that starts on the picture
+   must be allowed to carry the pointer out over the backdrop and keep going. */
+.lightbox__port {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  /* `place-content`, not `place-items`: the image's box is its own pixel size,
+     so once it is larger than the window the track grows with it and centering
+     the item inside that track no longer moves it. */
+  place-content: center;
+  overflow: hidden;
+  cursor: zoom-out;
+}
+
+.lightbox__port:focus {
+  outline: none;
+}
+
+.lightbox__port[data-zoomed] {
+  cursor: grab;
+}
+
+.lightbox__port[data-zoomed]:active {
+  cursor: grabbing;
+}
+
+/* A frame the artifact itself cannot contain, so a screenshot of the wall is
+   never mistaken for the wall: a keyline in the pile's own color and a glow
+   that bleeds beyond the image's own edge — a zone with no `.hued` falls back
+   to the wall's accent. Whatever is inside the picture stops at the picture. */
+.lightbox__img {
+  /* Its own pixels, scaled by the view. `max-width` cannot express a zoom, and
+     leaving it on would silently cap one. */
+  width: var(--lb-w);
+  height: var(--lb-h);
+  max-width: none;
+  transform: translate(var(--lb-x), var(--lb-y)) scale(var(--lb-scale));
+  cursor: default;
+  opacity: 0;
+  outline: 2px solid var(--lb-accent, var(--accent));
+  /* Scaled with the image, so the keyline does not thicken as you zoom out. */
+  outline-offset: 6px;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--scrim) 60%, transparent),
+    0 0 28px 6px color-mix(in srgb, var(--lb-accent, var(--accent)) 55%, transparent),
+    0 0 90px 24px color-mix(in srgb, var(--lb-accent, var(--accent)) 22%, transparent);
+}
+
+/* The fade is on the way in only. Paging to the next card empties this box
+   before its picture arrives, and fading out left the keyline standing around
+   nothing for as long as the fade ran. */
+.lightbox__img--in {
+  opacity: 1;
+  transition: opacity 180ms ease-out;
+}
+
+/* Past twice its own pixels there is no more detail to interpolate toward, so
+   showing the pixels is more honest than smearing them. */
+.lightbox__img[data-sharp] {
+  image-rendering: pixelated;
+}
+
+/* Only a discrete zoom eases — a key or a double-click. A wheel or a drag has
+   a hand behind it and must not lag one. */
+.lightbox__port[data-eased] .lightbox__img {
+  transition: transform 140ms ease-out;
+}
+
+.lightbox__port[data-eased] .lightbox__img--in {
+  transition:
+    opacity 180ms ease-out,
+    transform 140ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox__img--in,
+  .lightbox__port[data-eased] .lightbox__img,
+  .lightbox__port[data-eased] .lightbox__img--in {
+    transition: none;
+  }
+}
+
+/* Present only while the view is off its fitted size, so the line answers
+   "am I at 1:1" without carrying a 100% that means nothing at rest. */
+.lightbox__zoom {
+  color: var(--lb-accent, var(--accent));
+}
+
+/* How much of the image is off screen, along the edge it runs off. A bar the
+   pointer cannot take hold of: the picture itself is the handle, and a control
+   that looks draggable and is not is worse than no control. */
+.lightbox__bar {
+  position: absolute;
+  z-index: 1;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--lb-accent, var(--accent)) 60%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--scrim) 55%, transparent);
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.lightbox__bar--x {
+  bottom: 8px;
+  height: 4px;
+  left: calc(var(--lb-bar-at) * 100%);
+  width: calc(var(--lb-bar) * 100%);
+}
+
+.lightbox__bar--y {
+  right: 8px;
+  width: 4px;
+  top: calc(var(--lb-bar-at) * 100%);
+  height: calc(var(--lb-bar) * 100%);
+}

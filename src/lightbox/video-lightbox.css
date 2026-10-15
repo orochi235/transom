@@ -1,0 +1,12 @@
+/* Inset like a page, and for the same reason: the meta line above and the
+   caption below are the wall's, and a video that filled the window would cover
+   both. `object-fit` keeps its own aspect inside that box. */
+.lightbox__video {
+  position: absolute;
+  inset: 48px 24px;
+  width: calc(100% - 48px);
+  height: calc(100% - 96px);
+  background: var(--bg);
+  object-fit: contain;
+  cursor: default;
+}

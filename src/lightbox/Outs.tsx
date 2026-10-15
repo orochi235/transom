@@ -1,4 +1,5 @@
 import { actions } from '@/actions.ts'
+import '@/lightbox/outs.css'
 import type { TakeApp, TakeLink } from '@shared/protocol.ts'
 
 /**

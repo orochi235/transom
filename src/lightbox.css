@@ -5,95 +5,12 @@
   background: color-mix(in srgb, var(--scrim) 86%, transparent);
 }
 
-/* The window, and the frame the pan is held inside. It covers the scrim rather
-   than sitting in the middle of it, because a pan that starts on the picture
-   must be allowed to carry the pointer out over the backdrop and keep going. */
-.lightbox__port {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  /* `place-content`, not `place-items`: the image's box is its own pixel size,
-     so once it is larger than the window the track grows with it and centering
-     the item inside that track no longer moves it. */
-  place-content: center;
-  overflow: hidden;
-  cursor: zoom-out;
-}
-
-.lightbox__port:focus {
-  outline: none;
-}
-
-.lightbox__port[data-zoomed] {
-  cursor: grab;
-}
-
-.lightbox__port[data-zoomed]:active {
-  cursor: grabbing;
-}
-
 /* A wrapper that carries nothing but the zone's color, so everything the
    lightbox draws can read one property. `display: contents` because the frame
    below is positioned against the viewport and a box here would take it out of
    that. */
 .lightbox__tint {
   display: contents;
-}
-
-/* A frame the artifact itself cannot contain, so a screenshot of the wall is
-   never mistaken for the wall: a keyline in the pile's own color and a glow
-   that bleeds beyond the image's own edge — a zone with no `.hued` falls back
-   to the wall's accent. Whatever is inside the picture stops at the picture. */
-.lightbox__img {
-  /* Its own pixels, scaled by the view. `max-width` cannot express a zoom, and
-     leaving it on would silently cap one. */
-  width: var(--lb-w);
-  height: var(--lb-h);
-  max-width: none;
-  transform: translate(var(--lb-x), var(--lb-y)) scale(var(--lb-scale));
-  cursor: default;
-  opacity: 0;
-  outline: 2px solid var(--lb-accent, var(--accent));
-  /* Scaled with the image, so the keyline does not thicken as you zoom out. */
-  outline-offset: 6px;
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--scrim) 60%, transparent),
-    0 0 28px 6px color-mix(in srgb, var(--lb-accent, var(--accent)) 55%, transparent),
-    0 0 90px 24px color-mix(in srgb, var(--lb-accent, var(--accent)) 22%, transparent);
-}
-
-/* The fade is on the way in only. Paging to the next card empties this box
-   before its picture arrives, and fading out left the keyline standing around
-   nothing for as long as the fade ran. */
-.lightbox__img--in {
-  opacity: 1;
-  transition: opacity 180ms ease-out;
-}
-
-/* Past twice its own pixels there is no more detail to interpolate toward, so
-   showing the pixels is more honest than smearing them. */
-.lightbox__img[data-sharp] {
-  image-rendering: pixelated;
-}
-
-/* Only a discrete zoom eases — a key or a double-click. A wheel or a drag has
-   a hand behind it and must not lag one. */
-.lightbox__port[data-eased] .lightbox__img {
-  transition: transform 140ms ease-out;
-}
-
-.lightbox__port[data-eased] .lightbox__img--in {
-  transition:
-    opacity 180ms ease-out,
-    transform 140ms ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .lightbox__img--in,
-  .lightbox__port[data-eased] .lightbox__img,
-  .lightbox__port[data-eased] .lightbox__img--in {
-    transition: none;
-  }
 }
 
 /* The zone, the age, the provenance and the size, above the image for the
@@ -139,12 +56,6 @@
   color: var(--lb-accent, var(--accent));
 }
 
-/* Present only while the view is off its fitted size, so the line answers
-   "am I at 1:1" without carrying a 100% that means nothing at rest. */
-.lightbox__zoom {
-  color: var(--lb-accent, var(--accent));
-}
-
 /* Under the image rather than over it: a caption that covers the thing it
    names is worse than none. */
 .lightbox__caption {
@@ -165,87 +76,6 @@
   cursor: default;
 }
 
-/* The whole surround closes a page, so it says so. The frame itself takes the
-   cursor back, because inside it the pointer belongs to the page. */
-.lightbox:has(> .lightbox__page) {
-  cursor: zoom-out;
-}
-
-/* One more chip in the meta row, at the other end of it: the same treatment as
-   the zone and the age, so it reads as the wall's furniture and not as
-   something the page drew. */
-.lightbox__close {
-  position: fixed;
-  z-index: 2;
-  top: 18px;
-  right: 24px;
-  padding: 3px 10px;
-  border: 0;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--scrim) 70%, transparent);
-  /* Full ink where the meta chips are dimmed: this is the one part of the row
-     that has to be found rather than read. */
-  color: var(--ink);
-  font: 500 calc(11px * var(--ui-type))/1.4 var(--chrome-face);
-  letter-spacing: 0.04em;
-  cursor: pointer;
-}
-
-.lightbox__close:hover,
-.lightbox__close:focus-visible {
-  color: var(--lb-accent, var(--accent));
-}
-
-/* Inset rather than full-bleed: the meta line above and the caption below are
-   the wall's, and a page that filled the window would cover both. */
-.lightbox__page {
-  position: absolute;
-  inset: 48px 24px;
-  width: calc(100% - 48px);
-  height: calc(100% - 96px);
-  border: 0;
-  background: var(--bg);
-  cursor: default;
-}
-
-/* Inset like a page, and for the same reason: the meta line above and the
-   caption below are the wall's, and a video that filled the window would cover
-   both. `object-fit` keeps its own aspect inside that box. */
-.lightbox__video {
-  position: absolute;
-  inset: 48px 24px;
-  width: calc(100% - 48px);
-  height: calc(100% - 96px);
-  background: var(--bg);
-  object-fit: contain;
-  cursor: default;
-}
-
-/* Inset like a page and a video, for the same reason: the meta line above and
-   the caption below are the wall's. No background — the model is lit on the
-   scrim, which is the poster's transparency carried through. */
-.lightbox__mesh {
-  position: absolute;
-  inset: 48px 24px;
-  width: calc(100% - 48px);
-  height: calc(100% - 96px);
-  cursor: grab;
-}
-
-.lightbox__mesh:active {
-  cursor: grabbing;
-}
-
-.lightbox__meshFailed {
-  position: absolute;
-  inset-block-start: 50%;
-  inline-size: 100%;
-  margin: 0;
-  color: var(--ink-dim, var(--ink));
-  font: 500 calc(13px * var(--ui-type))/1.4 var(--chrome-face);
-  text-align: center;
-}
-
 /* A control that reads as one of the meta chips rather than as a button: the
    row is the wall's furniture and these belong to it. */
 .lightbox__metaButton {
@@ -263,118 +93,9 @@
   color: var(--lb-accent, var(--accent));
 }
 
-/* Under the meta line, in the same chip treatment, and wider: a question is
-   the one thing in the surround that is waiting on the viewer. */
-.lightbox__ask {
-  position: fixed;
-  /* A sibling of `.lightbox` rather than inside it, so it clears that layer. */
-  z-index: 101;
-  top: 52px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(560px, calc(100vw - 32px));
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 6px;
-  outline: 1px solid var(--lb-accent, var(--accent));
-  background: color-mix(in srgb, var(--scrim) 88%, transparent);
-  color: var(--ink);
-  font: 500 calc(12px * var(--ui-type))/1.4 var(--chrome-face);
-  cursor: default;
-}
-
-.lightbox__question {
-  margin: 0 0 8px;
-  white-space: pre-wrap;
-}
-
-.lightbox__answers {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 6px;
-}
-
-.lightbox__reply {
-  flex: 1;
-  min-width: 0;
-  resize: vertical;
-  padding: 4px 6px;
-  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--bg) 80%, transparent);
-  color: var(--ink);
-  font: inherit;
-}
-
-/* The comment box under the chips spans the row they sit in. A direct child of
-   the panel is that box; the older free-text answer is inside `__answers`
-   beside its send button, where `flex` is doing the sizing instead. */
-.lightbox__ask > .lightbox__reply {
-  box-sizing: border-box;
-  width: 100%;
-}
-
-.lightbox__choice,
-.lightbox__skip {
-  padding: 3px 10px;
-  border: 1px solid var(--lb-accent, var(--accent));
-  border-radius: 4px;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.lightbox__choice:hover,
-.lightbox__choice:focus-visible {
-  background: color-mix(in srgb, var(--lb-accent, var(--accent)) 30%, transparent);
-}
-
-.lightbox__choice:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.lightbox__skip {
-  margin-left: auto;
-  border-color: transparent;
-  color: color-mix(in srgb, var(--ink) 60%, transparent);
-}
-
-.lightbox__skip:hover,
-.lightbox__skip:focus-visible {
-  color: var(--ink);
-}
-
-/* A closed question: the same panel, answered and no longer asking. */
-.lightbox__ask[data-closed] {
-  outline-color: color-mix(in srgb, var(--ink) 25%, transparent);
-}
-
-.lightbox__ask[data-closed] .lightbox__choice {
-  cursor: default;
-  border-color: color-mix(in srgb, var(--ink) 25%, transparent);
-  color: color-mix(in srgb, var(--ink) 50%, transparent);
-}
-
-.lightbox__ask[data-closed] .lightbox__choice[data-chosen] {
-  border-color: var(--lb-accent, var(--accent));
-  background: color-mix(in srgb, var(--lb-accent, var(--accent)) 30%, transparent);
-  color: var(--ink);
-}
-
-.lightbox__reply--closed {
-  margin: 0;
-  border-color: transparent;
-  white-space: pre-wrap;
-}
-
 /* Played after a reply, before the lightbox unmounts. The duration is
    REPLY_CLOSE_MS in WebglBackend. */
-.lightbox[data-closing],
-.lightbox__ask[data-closing] {
+.lightbox[data-closing] {
   animation: lightbox-out 240ms ease-in both;
 }
 
@@ -385,138 +106,8 @@
   }
 }
 
-/* The panel centers itself with a transform, which the scale must keep. */
-.lightbox__ask[data-closing] {
-  animation-name: lightbox-ask-out;
-}
-
-@keyframes lightbox-ask-out {
-  to {
-    opacity: 0;
-    transform: translateX(-50%) scale(0.97);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .lightbox[data-closing],
-  .lightbox__ask[data-closing] {
+  .lightbox[data-closing] {
     animation: none;
-  }
-}
-
-/* How much of the image is off screen, along the edge it runs off. A bar the
-   pointer cannot take hold of: the picture itself is the handle, and a control
-   that looks draggable and is not is worse than no control. */
-.lightbox__bar {
-  position: absolute;
-  z-index: 1;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--lb-accent, var(--accent)) 60%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--scrim) 55%, transparent);
-  pointer-events: none;
-  opacity: 0.75;
-}
-
-.lightbox__bar--x {
-  bottom: 8px;
-  height: 4px;
-  left: calc(var(--lb-bar-at) * 100%);
-  width: calc(var(--lb-bar) * 100%);
-}
-
-.lightbox__bar--y {
-  right: 8px;
-  width: 4px;
-  top: calc(var(--lb-bar-at) * 100%);
-  height: calc(var(--lb-bar) * 100%);
-}
-
-/* The counter, in the panel's own corner rather than in the question's line:
-   `3/12` becomes `10/12` and anything after it in flow would shift. */
-.lightbox__count {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  color: color-mix(in srgb, var(--ink) 55%, transparent);
-  font-variant-numeric: tabular-nums;
-}
-
-/* The key that sends this chip. Dimmed and after the word, so the row reads as
-   verdicts with shortcuts rather than as a numbered list. */
-.lightbox__key {
-  margin-left: 6px;
-  opacity: 0.5;
-  font-size: 0.85em;
-}
-
-/* Where the artifact says to go next, mirroring the question panel's offset
-   from the meta line at the other end of the window. */
-.lightbox__outs {
-  position: fixed;
-  z-index: 101;
-  bottom: 52px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  max-width: min(560px, calc(100vw - 32px));
-  cursor: default;
-}
-
-.lightbox__out {
-  padding: 3px 10px;
-  border: 1px solid color-mix(in srgb, var(--lb-accent, var(--accent)) 70%, transparent);
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--scrim) 88%, transparent);
-  color: var(--ink);
-  font: 500 calc(12px * var(--ui-type))/1.4 var(--chrome-face);
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.lightbox__out:hover,
-.lightbox__out:focus-visible {
-  background: color-mix(in srgb, var(--lb-accent, var(--accent)) 30%, var(--scrim));
-}
-
-/* There is another take this way. Drawn only where one exists, so the pair
-   never points at nothing, and only for a group — an ordinary card's arrows page
-   the wall, which is the whole window and needs no hint. */
-.lightbox__step {
-  position: fixed;
-  z-index: 101;
-  top: 50%;
-  width: 22px;
-  height: min(40vh, 320px);
-  padding: 0;
-  border: 0;
-  transform: translateY(-50%);
-  background: color-mix(in srgb, var(--lb-accent, var(--accent)) 38%, transparent);
-  opacity: 0.55;
-  cursor: pointer;
-  transition: opacity 120ms ease-out;
-}
-
-.lightbox__step:hover,
-.lightbox__step:focus-visible {
-  opacity: 1;
-}
-
-.lightbox__step--prev {
-  left: 0;
-  clip-path: polygon(100% 0, 100% 100%, 0 50%);
-}
-
-.lightbox__step--next {
-  right: 0;
-  clip-path: polygon(0 0, 0 100%, 100% 50%);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .lightbox__step {
-    transition: none;
   }
 }
