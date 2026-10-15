@@ -1,20 +1,18 @@
-import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
-import { Slider } from '@weasel-js/ui'
-import { delaminate } from 'delamin8r'
-import { Panel, PanelRow, PanelRows } from '@/panel/index.ts'
-import { ago } from '@/age.ts'
-import { BUCKETS, bucketRange, filterFrom, histogram, resolve, spanOf, type Filter } from '@/nav/time-filter.ts'
+import { useMemo, useRef, type ReactNode } from 'react'
+import { Panel } from '@/panel/index.ts'
+import type { Filter } from '@/nav/time-filter.ts'
 import { kindTally, type KindKey } from '@/nav/kind-filter.ts'
 import { hostTally } from '@/nav/host-filter.ts'
-import { SORTS, type SortKey } from '@/nav/sort.ts'
+import type { SortKey } from '@/nav/sort.ts'
 import type { Disk, WallItem } from '@shared/protocol.ts'
 import type { StackParams } from '@/params.ts'
 import type { ClientStale } from '@/dev/clientStale.ts'
+import { TimePanel } from '@/topbar/TimePanel.tsx'
+import { SortPanel } from '@/topbar/SortPanel.tsx'
+import { TallyPanel } from '@/topbar/TallyPanel.tsx'
+import { ViewPanel } from '@/topbar/ViewPanel.tsx'
+import { useBandParallax, usePublishedHeight } from '@/topbar/useBand.ts'
 import './topbar.css'
-
-const BINS = 64
-
-const gb = (bytes: number) => (bytes / 1024 ** 3).toFixed(1)
 
 /**
  * The wall's filters. A band rather than a toolbar: each section is a block
@@ -93,249 +91,42 @@ export function TopBar({
   listed: boolean
   onList: () => void
 }) {
-  const bornAts = useMemo(() => items.map((i) => i.bornAt), [items])
   const tally = useMemo(() => kindTally(items), [items])
   const senders = useMemo(() => hostTally(items, hosts), [items, hosts])
-  const span = useMemo(() => spanOf(bornAts, now), [bornAts, now])
-  const bins = useMemo(() => histogram(bornAts, span, BINS), [bornAts, span])
-  const tallest = Math.max(1, ...bins)
 
-  const resolved = resolve(range, now)
-  const value: [number, number] = [resolved?.from ?? span.from, resolved?.to ?? span.to]
-  const step = Math.max(1000, Math.round((span.to - span.from) / 400))
-
-  // Everything else fixed to the top clears the band by `--band`, and the band
-  // is as tall as its own type — so it publishes what it measures rather than
-  // a constant that has to be re-guessed whenever the chrome is resized.
   const band = useRef<HTMLElement>(null)
-  useEffect(() => {
-    const el = band.current
-    if (!el) return
-    const publish = () =>
-      document.documentElement.style.setProperty('--band', `${el.getBoundingClientRect().height}px`)
-    publish()
-    const watch = new ResizeObserver(publish)
-    watch.observe(el)
-    return () => watch.disconnect()
-  }, [])
-
-  // delamin8r reads its options once, so a tuning change unwraps the band and
-  // wraps it again. `window`, not `tilt`: a tilt injects a deck, and the flex
-  // row would be left laying out one child.
-  useEffect(() => {
-    const el = band.current
-    if (!el || !allowParallax || !look.parallax) return
-    const handle = delaminate(el, {
-      mode: 'window',
-      step: look.step,
-      perspective: look.perspective,
-      swing: look.swing,
-      // Panels, what they hold, and the rows and buttons in that. Below is the
-      // slider's own machinery and the chart's bars.
-      maxDepth: 3,
-    })
-    if (import.meta.env.DEV) {
-      for (const { el: flat, cause } of handle.diagnose()) console.warn(`[band] flat: ${cause}`, flat)
-    }
-    return () => handle.destroy()
-  }, [allowParallax, look.parallax, look.step, look.perspective, look.swing])
+  usePublishedHeight(band)
+  useBandParallax(band, look, allowParallax)
 
   return (
     <header className="topbar" ref={band} aria-label="Wall filters">
       {/* Classes in here are static and state rides on attributes: delamin8r
           writes `dl-plane` onto these elements, and React setting `className`
           strips it. */}
-      <Panel name="time">
-        {/* Out of the stack, not just off its own plane: a control nested two
-            planes deep is hit-tested a dozen px from where it paints, and the
-            range picker's thumb is 6px wide, so the grab misses every time. */}
-        <div className="topbar__chart" data-dl-skip>
-          <Slider
-            className="topbar__range wzl-skin"
-            thumbs={[{ value: value[0] }, { value: value[1] }]}
-            min={span.from}
-            max={span.to}
-            step={step}
-            constraint="ordered"
-            trackClick="move-nearest"
-            trackHeight={34}
-            readoutPlacement="none"
-            ariaLabel="Time range"
-            onInput={(next) => onRange(filterFrom(next[0].value, next[1].value, span, step))}
-            renderTrack={() => (
-              /* The shape of the day, so a burst is something you can see
-                 before you go looking for it. Drawn inside the track rather
-                 than beside it, so the bars and the thumbs cannot land on
-                 different widths. */
-              <svg
-                className="topbar__hist"
-                viewBox={`0 0 ${BINS} 100`}
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                {bins.map((n, i) => {
-                  const start = span.from + ((span.to - span.from) * i) / BINS
-                  const inside = !resolved || (start >= resolved.from && start <= resolved.to)
-                  return (
-                    <rect
-                      key={i}
-                      className={`topbar__bar ${inside ? '' : 'topbar__bar--out'}`}
-                      x={i}
-                      y={100 - (n / tallest) * 100}
-                      width={0.86}
-                      height={(n / tallest) * 100}
-                    />
-                  )
-                })}
-              </svg>
-            )}
-          />
-        </div>
+      <TimePanel items={items} now={now} range={range} onRange={onRange} />
 
-        <div className="topbar__scale">
-          <span>{ago(now - span.from)} ago</span>
-          <span>now</span>
-        </div>
-
-        {/* Under the span they set, where a preset reads as a shortcut to a
-            range rather than as a filter of its own. */}
-        <div className="topbar__buckets">
-          {BUCKETS.map((bucket) => {
-            const b = bucketRange(bucket.key)
-            const on = !!range && range.fromAgo === b.fromAgo && range.toAgo === 0
-            return (
-              <button
-                key={bucket.key}
-                type="button"
-                className="topbar__bucket"
-                aria-pressed={on}
-                onClick={() => onRange(on ? null : b)}
-              >
-                {bucket.label}
-              </button>
-            )
-          })}
-        </div>
-      </Panel>
-
-      {/* One key, both places: the zones on the wall and the flag list in the
-          sidebar. */}
-      <Panel name="sort" tight>
-        <PanelRows>
-          {SORTS.map((option, i) => (
-            <PanelRow
-              key={option.key}
-              label={option.label}
-              keys={[`F${i + 1}`]}
-              selected={sort === option.key}
-              onSelect={() => onSort(option.key)}
-            />
-          ))}
-        </PanelRows>
-      </Panel>
+      <SortPanel sort={sort} onSort={onSort} />
 
       {/* Beside the sort, because both are about which artifacts the eye is
           meant to land on. Only the kinds the wall actually holds: a button
           that filters nothing still has to be read before it can be ignored. */}
-      {tally.length > 0 && (
-        <Panel name="type" tight>
-          {/* The sort's rows, so the two panels beside each other read as one
-              list: the name against the left wall, its tally against the
-              right, where the sort keeps its keys. */}
-          <PanelRows>
-            {tally.map((kind) => (
-              <PanelRow
-                key={kind.key}
-                className="topbar__kind"
-                selected={kinds.has(kind.key)}
-                onSelect={() => onKind(kind.key)}
-              >
-                <span>{kind.label}</span>
-                <span className="topbar__count">{kind.count}</span>
-              </PanelRow>
-            ))}
-          </PanelRows>
-        </Panel>
-      )}
+      {tally.length > 0 && <TallyPanel name="type" rows={tally} picked={kinds} onPick={onKind} />}
 
-      {senders.length > 0 && (
-        <Panel name="from" tight>
-          <PanelRows>
-            {senders.map((host) => (
-              <PanelRow
-                key={host.key}
-                className="topbar__kind"
-                selected={hosts.has(host.key)}
-                onSelect={() => onHost(host.key)}
-              >
-                <span>{host.label}</span>
-                <span className="topbar__count">{host.count}</span>
-              </PanelRow>
-            ))}
-          </PanelRows>
-        </Panel>
-      )}
+      {senders.length > 0 && <TallyPanel name="from" rows={senders} picked={hosts} onPick={onHost} />}
 
-      {/* Where you are, held against the right edge and away from what you are
-          filtering. */}
-      <Panel name="view" tight pushed>
-        <div className="topbar__view">
-          {/* A color per zone cannot be a class, so the value rides in as a
-              custom property and the stylesheet decides what to do with it. */}
-          <span
-            className="topbar__where"
-            data-hued={whereColor ? '' : undefined}
-            style={whereColor ? ({ '--where': whereColor } as CSSProperties) : undefined}
-          >
-            {where ?? 'wall'}
-          </span>
-          {/* The keys are the only thing that says the arrangement can be
-              swapped at all — there is no control to find. */}
-          <PanelRow
-            label={arrangement}
-            keys={['[', ']']}
-            keysTitle="[ and ] swap the arrangement"
-          />
-          <PanelRow
-            label="list"
-            keys={['L']}
-            keysTitle="L pages the whole wall as one list"
-            selected={listed}
-            onSelect={onList}
-          />
-          <span className="topbar__tally">
-            <span className="topbar__count">{count}</span> {count === 1 ? 'item' : 'items'}
-            {offWall > 0 && (
-              <>
-                {' · '}
-                <span className="topbar__count">{offWall}</span> off wall
-              </>
-            )}
-          </span>
-          {!connected && <span className="topbar__offline">offline</span>}
-          {connected && stale && (
-            <span className="topbar__stale" title="The daemon is running a different build. Run npm run daemon:restart.">
-              daemon stale
-            </span>
-          )}
-          {pageStale && (
-            <span
-              className="topbar__stale"
-              title={`The dev server missed edits to ${pageStale.files.join(', ')}${pageStale.count > pageStale.files.length ? ` and ${pageStale.count - pageStale.files.length} more` : ''}. Run transom cycle.`}
-            >
-              page stale
-            </span>
-          )}
-          {connected && disk?.over && (
-            <span
-              className="topbar__disk"
-              title={`Cards the wall may not evict (pinned, eternal zones, open questions, undelivered drawings) hold ${gb(disk.wallBytes)} GB, over the wall's ${gb(disk.wallMax)} GB cap.`}
-            >
-              disk
-            </span>
-          )}
-        </div>
-      </Panel>
+      <ViewPanel
+        where={where}
+        whereColor={whereColor}
+        arrangement={arrangement}
+        listed={listed}
+        onList={onList}
+        count={count}
+        offWall={offWall}
+        connected={connected}
+        stale={stale}
+        pageStale={pageStale}
+        disk={disk}
+      />
       {plan && (
         <Panel name="map" tight>
           {plan}
