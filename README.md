@@ -38,6 +38,16 @@ the room. `transom post` returns at once, printing where the file landed and, on
 a `wall:` link that opens its card; `transom ask` blocks until someone
 answers on the card, and prints what they said.
 
+That printed path is how a sender changes its mind later:
+
+```
+transom mend <path> fixed.png --caption "the third crop, recut"
+transom pull <path>
+```
+
+`mend` changes a card where it hangs and leaves its age alone. `pull` sends it
+to the trash, where the wall's undo can still bring it back.
+
 In the lightbox a picture can be drawn on — freehand, arrows, boxes, notes —
 and sent back with *No, like this* to the Claude Code session that made it,
 while that session is still running. Until it arrives, or is discarded, the

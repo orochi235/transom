@@ -21,6 +21,7 @@ import { mountWall } from './routes/wall.ts'
 import { mountFiles } from './routes/files.ts'
 import { mountTo } from './routes/to.ts'
 import { mountItems } from './routes/items.ts'
+import { mountPosts } from './routes/posts.ts'
 import { mountMarks } from './routes/marks.ts'
 import { mountZones } from './routes/zones.ts'
 import { mountDebug } from './routes/debug.ts'
@@ -125,7 +126,8 @@ const inbox = watchInbox((landed, arrival) => {
   if (toast) broadcast({ type: 'alert', alert: toast })
   if (plan.sound || plan.notify || plan.raise !== 'none')
     console.log(`[alert] ${item.attention?.level} ${JSON.stringify(plan)}`)
-})
+}, (item) => broadcast({ type: 'amend', item }))
+mountPosts(app, { token, broadcast, mend: inbox.mend })
 startReaper(inbox.ready, (d) => {
   disk = d
   broadcast({ type: 'disk', disk: d })

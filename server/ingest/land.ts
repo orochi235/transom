@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises'
+import { mkdir, stat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { config } from '../config.ts'
 import * as store from '../store.ts'
@@ -43,6 +43,9 @@ export async function ingest(sourcePath: string, bornAt: number): Promise<Landed
   const { info, source, frames, duration, bytes } = rendered
 
   await stampOriginal(sourcePath, xmp)
+  // `/img` is cached as immutable, so a mended file must arrive at a new URL.
+  // ctime moves on every write and every `utimes`, which a sender cannot undo.
+  const rev = await stat(sourcePath).then((s) => `?v=${Math.round(s.ctimeMs).toString(36)}`, () => '')
 
   const ttlMs = ttlFromName(basename(sourcePath))
   const question = sidecar?.question ?? null
@@ -71,8 +74,8 @@ export async function ingest(sourcePath: string, bornAt: number): Promise<Landed
   if (sidecar?.group) {
     const take: Take = {
       id,
-      url: `/img/${id}`,
-      origUrl: origUrlFor(id, sourcePath),
+      url: `/img/${id}${rev}`,
+      origUrl: `${origUrlFor(id, sourcePath)}${rev}`,
       name: caption,
       path: sourcePath,
       at: bornAt,
@@ -146,8 +149,8 @@ export async function ingest(sourcePath: string, bornAt: number): Promise<Landed
     ...(kind === 'page' && sidecar?.sandbox ? { sandbox: sidecar.sandbox } : {}),
     ...(sidecar?.apps ? { apps: sidecar.apps } : {}),
     ...(sidecar?.links ? { links: sidecar.links } : {}),
-    url: `/img/${id}`,
-    origUrl: origUrlFor(id, sourcePath),
+    url: `/img/${id}${rev}`,
+    origUrl: `${origUrlFor(id, sourcePath)}${rev}`,
     path: sourcePath,
     zone,
     name: caption,

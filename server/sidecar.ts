@@ -1,4 +1,7 @@
 import { readFile, rename, writeFile } from 'node:fs/promises'
+import { basename } from 'node:path'
+import { save } from './atomic.ts'
+import { captionFromName } from './captionName.ts'
 import type { Stamp } from './xmp.ts'
 import type { Reply } from '@shared/protocol.ts'
 
@@ -150,6 +153,33 @@ export async function setKept(imagePath: string, keptAt: number | null): Promise
   if (keptAt === null) delete blob.kept
   else blob.kept = new Date(keptAt).toISOString()
   await writeFile(path, `${JSON.stringify(blob)}\n`)
+}
+
+/** The words `transom mend` may change. An empty string clears that field. */
+export type Words = Partial<Record<'caption' | 'note' | 'attention', string>>
+
+export const WORDS = ['caption', 'note', 'attention'] as const
+
+/**
+ * Merges a mend into the sidecar. A file dropped in by hand has none, and its
+ * name is its caption, so the sidecar written for it starts from that name:
+ * otherwise mending its note would blank the caption it already showed.
+ */
+export async function setWords(imagePath: string, words: Words): Promise<void> {
+  const path = sidecarFor(imagePath)
+  let blob: Record<string, unknown>
+  try {
+    blob = JSON.parse(await readFile(path, 'utf8')) as Record<string, unknown>
+  } catch {
+    blob = { caption: captionFromName(basename(imagePath)) }
+  }
+  for (const key of WORDS) {
+    const value = words[key]
+    if (value === undefined) continue
+    if (value === '') delete blob[key]
+    else blob[key] = value
+  }
+  await save(path, `${JSON.stringify(blob)}\n`)
 }
 
 /** When an image was rescued, or null. Unparseable is null: a hand-edited

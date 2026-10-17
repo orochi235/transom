@@ -5,7 +5,7 @@ import { hostname } from 'node:os'
 import { join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { spawnSync } from 'node:child_process'
-import type { Express, RequestHandler } from 'express'
+import type { Express, Request, RequestHandler, Response } from 'express'
 import { PROTOCOL } from '@shared/remote.ts'
 import { config } from './config.ts'
 import { guard } from './auth.ts'
@@ -18,7 +18,7 @@ const ZONE = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/
 const SUFFIX = /^(\.ttl[A-Za-z0-9:-]+)?(\.[a-z0-9]+)$/
 const FILE = /^[A-Za-z0-9._-]+$/
 
-const sameProtocol: RequestHandler = (req, res, next) => {
+export const sameProtocol: RequestHandler = (req, res, next) => {
   const spoke = req.headers['x-transom-protocol']
   if (spoke === String(PROTOCOL)) return next()
   res.status(426).type('text').send(
@@ -29,7 +29,7 @@ const sameProtocol: RequestHandler = (req, res, next) => {
 
 /** A remote session blocked in `transom ask` runs no hook, so its polls are
  *  what keep it live for a markup to answer the question. */
-const seen: RequestHandler = (req, _res, next) => {
+export const seen: RequestHandler = (req, _res, next) => {
   const session = req.headers['x-transom-session']
   if (typeof session === 'string' && session !== '') sawSession(session)
   next()
@@ -38,12 +38,39 @@ const seen: RequestHandler = (req, _res, next) => {
 let ffmpeg: boolean | undefined
 const ffmpegHere = () => (ffmpeg ??= spawnSync(config.ffmpeg, ['-version'], { stdio: 'ignore' }).status === 0)
 
-function decodeSidecar(header: string | string[] | undefined): Record<string, unknown> | null {
+export function decodeSidecar(header: string | string[] | undefined): Record<string, unknown> | null {
   if (typeof header !== 'string') return {}
   try {
     const blob = JSON.parse(Buffer.from(header, 'base64').toString('utf8'))
     return blob && typeof blob === 'object' && !Array.isArray(blob) ? blob : null
   } catch {
+    return null
+  }
+}
+
+/**
+ * Streams a request body into `.incoming`, answering 413 or 400 itself when it
+ * cannot. A body cut off partway never reaches a zone, and the reaper deletes it
+ * within the hour.
+ */
+export async function receive(req: Request, res: Response): Promise<string | null> {
+  if (Number(req.headers['content-length'] ?? 0) > config.uploadMaxBytes) {
+    res.status(413).type('text').send('transom: over the 2 GB a send may be\n')
+    return null
+  }
+  await mkdir(config.incoming, { recursive: true })
+  const part = join(config.incoming, randomUUID())
+  let bytes = 0
+  req.on('data', (chunk: Buffer) => {
+    bytes += chunk.length
+    if (bytes > config.uploadMaxBytes) req.destroy()
+  })
+  try {
+    await pipeline(req, createWriteStream(part))
+    return part
+  } catch {
+    await rm(part, { force: true })
+    if (!res.headersSent) res.status(bytes > config.uploadMaxBytes ? 413 : 400).end()
     return null
   }
 }
@@ -65,25 +92,9 @@ export function mountRemote(
     const dest = join(config.inbox, zone, `${randomUUID()}${suffix[0]}`)
     if (kindOf(dest) === 'video' && !hasFfmpeg())
       return void res.status(422).type('text').send('transom: the wall has no ffmpeg for the poster frame. brew install ffmpeg on the wall.\n')
-    if (Number(req.headers['content-length'] ?? 0) > config.uploadMaxBytes)
-      return void res.status(413).type('text').send('transom: over the 2 GB a send may be\n')
 
-    // Into .incoming first: a body cut off partway never reaches a zone, and
-    // the reaper deletes it within the hour.
-    await mkdir(config.incoming, { recursive: true })
-    const part = join(config.incoming, randomUUID())
-    let bytes = 0
-    req.on('data', (chunk: Buffer) => {
-      bytes += chunk.length
-      if (bytes > config.uploadMaxBytes) req.destroy()
-    })
-    try {
-      await pipeline(req, createWriteStream(part))
-    } catch {
-      await rm(part, { force: true })
-      if (!res.headersSent) res.status(bytes > config.uploadMaxBytes ? 413 : 400).end()
-      return
-    }
+    const part = await receive(req, res)
+    if (part === null) return
 
     const { zoneRoot, hued, ...stamp } = side
     // Without a host the store would check the sender's pid against this host's processes.

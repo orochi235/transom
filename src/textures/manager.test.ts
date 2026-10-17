@@ -86,6 +86,25 @@ describe('createTextureManager', () => {
     expect(load).toHaveBeenCalledTimes(1)
   })
 
+  it('reloads a card whose picture moved to a new URL, keeping the old one up meanwhile', async () => {
+    let url = '/img/a?v=1'
+    const disposed: string[] = []
+    const manager = createTextureManager<string>({
+      budgetBytes: 4 * 1024 * 1024,
+      urlFor: () => url,
+      load: async (at, edge) => ({ value: `${at}@${edge}`, bytes: edge * edge * 4 }),
+      dispose: (v) => disposed.push(v),
+    })
+    manager.sync(new Map([['a', 512]]))
+    await flush()
+    url = '/img/a?v=2'
+    manager.sync(new Map([['a', 512]]))
+    expect(manager.textureFor('a')).toBe('/img/a?v=1@512')
+    await flush()
+    expect(manager.textureFor('a')).toBe('/img/a?v=2@512')
+    expect(disposed).toContain('/img/a?v=1@512')
+  })
+
   it('disposes everything on a lost context', async () => {
     const { manager, disposed } = harness()
     manager.sync(new Map([['a', 128]]))

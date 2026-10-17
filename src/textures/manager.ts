@@ -24,6 +24,9 @@ export function createTextureManager<T>(opts: {
 }): TextureManager<T> {
   const store = createTextureStore<T>({ budgetBytes: opts.budgetBytes, dispose: opts.dispose })
   const heldEdge = new Map<string, Edge>()
+  // The URL each held texture came from. A mended card keeps its id and moves
+  // to a new URL, and its old picture stays up until the new one lands.
+  const heldUrl = new Map<string, string>()
   const inFlight = new Set<string>()
 
   return {
@@ -32,20 +35,24 @@ export function createTextureManager<T>(opts: {
         if (want.has(id)) continue
         store.delete(id)
         heldEdge.delete(id)
+        heldUrl.delete(id)
       }
 
       for (const [id, requested] of want) {
-        const next = ratchet(heldEdge.get(id), requested as Edge)
+        const url = opts.urlFor(id)
+        const stale = heldUrl.has(id) && heldUrl.get(id) !== url
+        const next = stale ? (requested as Edge) : ratchet(heldEdge.get(id), requested as Edge)
         if (next === 0) continue
-        if (heldEdge.get(id) === next && store.get(id) !== undefined) continue
+        if (!stale && heldEdge.get(id) === next && store.get(id) !== undefined) continue
         if (inFlight.has(id)) continue
 
         inFlight.add(id)
-        void opts.load(opts.urlFor(id), next).then((loaded) => {
+        void opts.load(url, next).then((loaded) => {
           inFlight.delete(id)
           if (!loaded) return
           store.put(id, loaded.value, loaded.bytes)
           heldEdge.set(id, next)
+          heldUrl.set(id, url)
           opts.onLoad?.()
         })
       }
@@ -54,6 +61,7 @@ export function createTextureManager<T>(opts: {
     clear() {
       store.clear()
       heldEdge.clear()
+      heldUrl.clear()
       inFlight.clear()
     },
   }

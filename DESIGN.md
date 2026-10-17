@@ -1029,6 +1029,36 @@ like a zone that intermittently forgets its color. A record whose directory has
 gone, or that is caught half-written, drops that zone's color and never the
 others'.
 
+### Changing a post after it is sent
+
+**A sender names a post by the path `post` printed**, because that is the one
+thing it holds, on the wall's own Mac and on a node alike; a card's id is a hash
+it never sees. `transom pull PATH` and `transom mend PATH` both go through the
+daemon, over loopback here and with the token from a node, so there is one code
+path for both.
+
+**`pull` is the menu's Expire.** The card goes to the trash and is an undo step,
+and an open question on it closes as expired, so an `ask` waiting on it exits 4.
+One take of a group leaves its card standing and is not an undo step; a group's
+last take takes the card.
+
+**`mend` changes a card where it hangs and never its age.** It takes a new file,
+new words (`--caption`, `--note`, `--attention`, with `""` clearing one), or
+both. The card keeps its id, its `bornAt`, its rescue, its reply and its
+drawings: the file is re-ingested at its old `at`, which is what adoption after
+a restart does anyway, and the new file is given the old mtime so a restart
+agrees. A sender who wants a fresh card pulls and posts again.
+
+| Rule | Why |
+|---|---|
+| The new file has the old one's extension. | The path is the card's id, and an extension is what decides its kind. |
+| The old file waits in `.incoming` until the new one reads, and comes back if it does not. | A bad mend must never cost the card. |
+| A take's `--note` and `--attention` are refused. | A group's flag and note are the card's, read from its first take, so on a later take they would change nothing. |
+| Every image URL carries `?v=`, the file's ctime. | `/img` is cached as immutable, and the page's textures are held by card id. A mended picture has to arrive at a new URL, and the texture manager reloads a card whose URL moved. |
+
+The page hears an `amend` carrying the whole item, which replaces the one held
+under its id. A take deleted from the inbox by hand sends one too.
+
 ## A repo's settings
 
 A committed `.transom.yaml` at the repo root changes what a send from that repo
@@ -1142,6 +1172,8 @@ mode-600 file removed on exit, on the node and in `pair`'s own check.
 | `GET /api/answers/:name?wait=30` | Returns the answer and deletes it, or 204 once `wait` runs out. `wait` is held to 0–60 seconds. The CLI asks again until it gets one, and keeps waiting through a wall that has gone away. |
 | `POST /api/marks/claim` | What the node's hook calls to collect drawings. |
 | `GET /api/whoami` | The wall's hostname, for `pair` to check the install. |
+| `POST /api/posts/pull?path=` | What `transom pull` calls. 404 for a path the wall does not hold. |
+| `POST /api/posts/mend?path=` | What `transom mend` calls: the new words as base64 JSON in `X-Transom-Sidecar`, and a new file as the body, with its extension in `X-Transom-Name`. 422 for a file of another kind, or one that will not read. |
 
 `GET /to/:zone/:name` is the link a send prints on stderr as `wall: …`. The
 daemon redirects it to the card that file hangs on — `#/<zone>/<card id>` on the

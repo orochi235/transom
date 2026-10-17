@@ -8,6 +8,14 @@
 #   transom ask "QUESTION" FILE   asks on the card, waits, prints the answer
 #   transom wait PATH             waits on a question already sent, by the path
 #                                 `transom ask --no-wait` printed
+#   transom pull PATH             takes a post off the wall, by the path `post`
+#                                 printed. It goes to the trash, as Expire does;
+#                                 one take of a group leaves the rest standing
+#   transom mend PATH [FILE] [--caption …] [--note …] [--attention …]
+#                                 changes a post where it hangs: a new file of
+#                                 the same kind, new words, or both. "" clears a
+#                                 word. Its age is untouched; pull and post again
+#                                 for a fresh card
 #   transom zone                  prints the zone this repo resolves to
 #   transom install               writes the wall's launchd agents and loads them
 #   transom up | down | cycle     starts, stops or restarts them
@@ -69,7 +77,7 @@
 # triggers on.
 set -eu
 
-usage() { sed -n '2,69p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "$0"; }
 
 # `wire` leaves this on PATH as a symlink, and the rest of the checkout is
 # beside the file it points at. Homebrew's formula says where instead.
@@ -86,6 +94,7 @@ verb=${1:-help}
 case "$verb" in
   post|ask|wait|zone) ;;
   protocol) echo 1; exit 0 ;;
+  pull|mend) . "$TRANSOM_HOME/libexec/posts.sh" ;;
   pair) exec sh "$TRANSOM_HOME/libexec/pair" "$@" ;;
   sync) exec node "$TRANSOM_HOME/libexec/sync.mjs" "$@" ;;
   install|up|down|cycle|stat|wire)

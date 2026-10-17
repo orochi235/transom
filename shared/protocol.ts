@@ -233,8 +233,11 @@ export type ServerMessage =
   | { type: 'expire'; id: string }
   /** The item is still on the wall; it has just stopped asking to be looked at. */
   | { type: 'dismiss'; id: string }
-  /** A take appended to a group already on the wall — the one thing that changes
-   *  an item's pixels after it lands, so the recomputed poster rides with it. */
+  /** Its sender changed the card — new words, a new file, or a take pulled out
+   *  of its group. The whole item, which replaces the one held under its id. */
+  | { type: 'amend'; item: WallItem }
+  /** A take appended to a group already on the wall, so the recomputed poster
+   *  rides with it. */
   | { type: 'take'; id: string; take: Take; poster: Poster }
   /** A question closed. Its flag goes with it; the question stays. `take` names
    *  which member of a group answered, and the poster moves on to the next

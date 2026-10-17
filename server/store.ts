@@ -1,9 +1,13 @@
-import { clearAttention, setKept } from './sidecar.ts'
+import { mkdir, rename } from 'node:fs/promises'
+import { join } from 'node:path'
+import { config } from './config.ts'
+import { clearAttention, setKept, trashStamp } from './sidecar.ts'
 import type { Poster, Take, WallItem } from '@shared/protocol.ts'
 import { MAX_TAKES, posterOf } from '@shared/groups.ts'
 import { KEEP_CAP, keptOf } from '@shared/keep.ts'
 import { entries, isOpen, listeners, repost, takeOwner, type Entry, type Files } from './store/entries.ts'
 import { close, closeAll, closeTake, type Closed } from './store/questions.ts'
+import { syncWaiting } from './store/marks.ts'
 
 export type { Closed } from './store/questions.ts'
 export { evictable, inUse, evict, onExpire, startSweeper, expireNow, expireZone, undoExpiry } from './store/expiry.ts'
@@ -72,7 +76,8 @@ export function addTake(
     entry.item.group = { ...entry.item.group, ...group }
   }
   // A take arriving means the group is still producing, so the card is not stale.
-  if (held) entry.item.bornAt = take.at
+  // A mended take comes back at its old `at`, which must not age the card.
+  if (held) entry.item.bornAt = Math.max(entry.item.bornAt, take.at)
   entries.set(entry.item.id, entry)
   return { item: entry.item, poster: repost(entry), opened: !held }
 }
@@ -90,29 +95,71 @@ export function snapshot(): WallItem[] {
  * something that never heard of the wall — which otherwise left a card whose
  * lightbox served a 404 for as long as the daemon ran.
  *
- * A group loses only the take: the card stands while any take still has a file.
+ * A group loses only the take: the card stands while any take still has a file,
+ * and `emptied` is false.
  */
-export function forget(sourcePath: string): string | null {
+export function forget(sourcePath: string): { id: string; emptied: boolean } | null {
+  const gone = release(sourcePath)
+  if (gone?.emptied) for (const fn of listeners) fn(gone.id)
+  return gone
+}
+
+/**
+ * Takes a path off the wall without announcing it, for a mend that ingests it
+ * again under the same id. `at` is when it landed — the card's `bornAt`, or the
+ * take's own — so it can come back at the same age. `emptied` says the card went
+ * with it rather than only a take.
+ */
+export function release(sourcePath: string): { id: string; at: number; emptied: boolean } | null {
   for (const entry of entries.values()) {
     if (entry.takes.size > 0) {
       for (const [takeId, files] of entry.takes.entries()) {
         if (files.sourcePath !== sourcePath) continue
+        const at = entry.item.takes?.find((t) => t.id === takeId)?.at ?? entry.item.bornAt
         entry.takes.delete(takeId)
         takeOwner.delete(takeId)
-        if (entry.takes.size > 0) return null
+        entry.item.takes = (entry.item.takes ?? []).filter((t) => t.id !== takeId)
+        if (entry.takes.size > 0) {
+          repost(entry)
+          return { id: entry.item.id, at, emptied: false }
+        }
         entries.delete(entry.item.id)
-        for (const fn of listeners) fn(entry.item.id)
-        return entry.item.id
+        return { id: entry.item.id, at, emptied: true }
       }
       continue
     }
     if (entry.sourcePath !== sourcePath) continue
     entries.delete(entry.item.id)
-    for (const fn of listeners) fn(entry.item.id)
-    return entry.item.id
+    return { id: entry.item.id, at: entry.item.bornAt, emptied: true }
   }
   return null
 }
+
+/**
+ * One take of a group sent to the trash, leaving the rest of the card standing.
+ * Null when the path is not a take with others beside it: a card, or a group's
+ * last take, is expired whole, so that Delete's undo can bring it back.
+ * A take pulled on its own is not an undo step.
+ */
+export async function expireTake(sourcePath: string): Promise<WallItem | null> {
+  const owner = [...entries.values()].find(
+    (e) => e.takes.size > 1 && [...e.takes.values()].some((f) => f.sourcePath === sourcePath),
+  )
+  if (!owner) return null
+  const [takeId, files] = [...owner.takes.entries()].find(([, f]) => f.sourcePath === sourcePath)!
+  // Somebody may be blocked in `transom ask` on it: they hear it expired.
+  await closeTake(owner, takeId, 'expired', '')
+  release(sourcePath)
+  await mkdir(config.trash, { recursive: true })
+  const dest = join(config.trash, `${takeId}-${owner.item.zone}`)
+  await rename(sourcePath, dest).catch(() => {})
+  await trashStamp(sourcePath, dest)
+  if (files.marks?.status === 'pending' && files.marks.sender) await syncWaiting(files.marks.sender.session)
+  return owner.item
+}
+
+/** The card a path's card id names, for a caller that needs the whole item. */
+export const itemOf = (id: string): WallItem | undefined => entries.get(id)?.item
 
 /**
  * Rescues an item, or lets one go again. The sidecar carries it, so the rescue

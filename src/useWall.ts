@@ -146,6 +146,8 @@ export function useWall(): Wall {
             setItems((prev) => [...prev, msg.item])
             const level = msg.item.attention?.level
             if (level && ALERTS[level].lightbox) setAnnounce(msg.item)
+          } else if (msg.type === 'amend') {
+            setItems((prev) => prev.map((i) => (i.id === msg.item.id ? msg.item : i)))
           } else if (msg.type === 'alert') {
             setAlerts((prev) => [...prev.filter((a) => a.id !== msg.alert.id), msg.alert].slice(-ALERTS_SHOWN))
           } else if (msg.type === 'expire') {
