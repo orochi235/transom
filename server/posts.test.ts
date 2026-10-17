@@ -100,6 +100,15 @@ describe('mend', () => {
     expect(amended().at(-1)!.item.name).toBe('second')
   })
 
+  it('warns about nothing it wrote into the inbox on the way', async () => {
+    const warn = vi.spyOn(console, 'warn')
+    const was = await hang('a.png')
+    await mend(was.path, { words: { caption: 'second' } })
+    await new Promise((r) => setTimeout(r, 200))
+    expect(warn.mock.calls.flat().join('\n')).not.toMatch(/does not hold/)
+    warn.mockRestore()
+  })
+
   it('clears a word given as empty', async () => {
     const was = await hang('a.png', { caption: 'first', note: 'n', attention: 'look' })
     await mend(was.path, { words: { note: '', attention: '' } })
@@ -217,6 +226,17 @@ describe('mend and pull from a node', () => {
     const res = await run(['pull', join(root, 'inbox', 'z', 'nope.png')])
     expect(res.code).toBe(1)
     expect(res.err).toMatch(/HTTP 404.*nothing on the wall is at that path/)
+  })
+
+  it('says so when the wall is too old to have the routes', async () => {
+    const old = express().listen(0)
+    await new Promise((r) => old.once('listening', r))
+    const a = old.address()
+    await writeFile(join(node, 'wall.env'), `TRANSOM_WALL=http://127.0.0.1:${typeof a === 'object' && a ? a.port : 0}\nTRANSOM_TOKEN=tok\n`)
+    const res = await run(['pull', join(root, 'inbox', 'z', 'a.png')])
+    old.close()
+    expect(res.code).toBe(1)
+    expect(res.err).toMatch(/is older than `transom pull`. Run brew upgrade transom on it/)
   })
 
   it('refuses a file of another kind before sending it', async () => {

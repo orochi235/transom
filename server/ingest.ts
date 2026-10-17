@@ -73,7 +73,8 @@ export function watchInbox(
   const unheld = new Set<string>()
   const notAnArtifact = (p: string) => {
     if (kindOf(p) !== null) return false
-    if (!p.endsWith('.transom.json') && !unheld.has(p)) {
+    // A sidecar, or one `save` is writing through a `.tmp` beside it.
+    if (!/\.transom\.json(\.tmp)?$/.test(p) && !unheld.has(p)) {
       unheld.add(p)
       console.warn(
         `[ingest] the wall does not hold ${extname(p) || 'that'}: ` +

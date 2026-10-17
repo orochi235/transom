@@ -77,6 +77,12 @@ case "$rc" in
     echo "transom $verb: $(sed 's/^curl: //' "$remote_tmp/err") (HTTP $code)" >&2
     exit 1 ;;
 esac
+# Express's own 404, not the daemon's: a wall from before these routes. The
+# protocol number did not move for them, so this is the only place it shows.
+if [ "$code" = 404 ] && grep -q "Cannot POST /api/posts/" "$body"; then
+  echo "transom $verb: the wall at $base is older than \`transom $verb\`. Run brew upgrade transom on it." >&2
+  exit 1
+fi
 [ "$code" = 200 ] || remote_refused "$code" "$body"
 [ "$verb" = mend ] && echo "$path"
 exit 0
