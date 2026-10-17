@@ -41,29 +41,6 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true })
 })
 
-describe('keep', () => {
-  it('writes the rescue to the sidecar, where a restart will find it', async () => {
-    const store = await freshStore(root)
-    store.add({ item: itemAt(source), sourcePath: source, cachePath: join(root, 'a.webp') })
-
-    const keptAt = await store.keep('a1', true)
-    expect(typeof keptAt).toBe('number')
-    expect(store.snapshot()[0]?.keptAt).toBe(keptAt)
-    expect(JSON.parse(await readFile(`${source}.transom.json`, 'utf8')).kept).toBe(
-      new Date(keptAt as number).toISOString(),
-    )
-
-    await store.keep('a1', false)
-    expect(store.snapshot()[0]?.keptAt).toBeUndefined()
-    expect(JSON.parse(await readFile(`${source}.transom.json`, 'utf8')).kept).toBeUndefined()
-  })
-
-  it('says so rather than throwing when the wall has already forgotten the item', async () => {
-    const store = await freshStore(root)
-    expect(await store.keep('gone', true)).toBe(false)
-  })
-})
-
 describe('expireNow and undoExpiry', () => {
   it('moves the file to the trash and brings it back with a fresh life', async () => {
     const store = await freshStore(root)

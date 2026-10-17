@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { PointerEvent } from 'react'
 import { useDelaminate } from 'delamin8r/react'
 import type { WallItem } from '@shared/protocol.ts'
-import { menuFor, type Action, type Target } from '@/menu/items.ts'
+import { menuFor, type Action, type Item, type Target } from '@/menu/items.ts'
 import type { StackParams } from '@/params.ts'
 import { placeMenu } from '@/menu/place.ts'
 import './menu.css'
@@ -31,6 +31,7 @@ export function CardMenu({
   zoneCount,
   zonePinned,
   armed,
+  kept,
   look,
   allowParallax,
   onAct,
@@ -45,13 +46,15 @@ export function CardMenu({
   zonePinned?: boolean
   /** The row clicked once and waiting to be meant. */
   armed?: Action | null
+  /** Everything kept, longest-kept first. */
+  kept?: readonly WallItem[]
   look: StackParams['menu']
   /** The app-wide parallax gate. The menu has no flag of its own. */
   allowParallax: boolean
-  onAct: (action: Action, app?: number) => void
+  onAct: (entry: Item) => void
   onClose: () => void
 }) {
-  const items = menuFor(at.target, { item, canUndo, zoneCount, zonePinned, armed })
+  const items = menuFor(at.target, { item, canUndo, zoneCount, zonePinned, armed, kept })
   const [spot, setSpot] = useState<{ left: number; top: number } | null>(null)
   const [active, setActive] = useState(0)
   const box = useRef<HTMLDivElement>(null)
@@ -127,7 +130,7 @@ export function CardMenu({
         e.preventDefault()
         e.stopPropagation()
         const chosen = items[active]
-        if (chosen) onAct(chosen.action, chosen.app)
+        if (chosen) onAct(chosen)
       }
     }
     window.addEventListener('keydown', onKey, true)
@@ -182,13 +185,13 @@ export function CardMenu({
         )}
         {items.map((entry, i) => (
           <div
-            key={entry.action}
+            key={`${entry.action}:${entry.app ?? entry.replace ?? ''}`}
             className={entry.grave ? 'menu__item menu__item--grave' : 'menu__item'}
             data-active={i === active ? '' : undefined}
             role="menuitem"
             tabIndex={-1}
             onPointerEnter={() => setActive(i)}
-            onClick={() => onAct(entry.action, entry.app)}
+            onClick={() => onAct(entry)}
           >
             {/* The row is the plane the highlight paints on; the label is
                 lifted clear of it. Depth in delamin8r only runs toward the

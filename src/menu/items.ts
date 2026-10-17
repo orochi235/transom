@@ -1,5 +1,6 @@
 import type { WallItem } from '@shared/protocol.ts'
 import { posterTake } from '@shared/groups.ts'
+import { KEEP_CAP } from '@shared/keep.ts'
 
 /** What the pointer was over. The chain `chainAt` returns, named. */
 export type Target =
@@ -36,6 +37,8 @@ export type Item = {
   label: string
   /** Which offered app this row opens, by position. Only on `openInApp`. */
   app?: number
+  /** The kept artifact a `pin` lets go to make room, once the keep is full. */
+  replace?: string
   /** Set on the one action that takes something away, so the menu can mark it
    *  without knowing which action that is. */
   grave?: boolean
@@ -65,6 +68,9 @@ export function menuFor(
     zonePinned?: boolean
     /** The row that has been clicked once and is waiting to be meant. */
     armed?: Action | null
+    /** Everything kept, longest-kept first: at the cap, Pin becomes a choice
+     *  of which to replace. */
+    kept?: readonly WallItem[]
   },
 ): Item[] {
   const items: Item[] = []
@@ -76,11 +82,12 @@ export function menuFor(
     offered.forEach((app, at) =>
       items.push({ action: 'openInApp', label: `Open in ${app.name}`, app: at }),
     )
-    items.push(
-      ctx.item.keptAt
-        ? { action: 'unpin', label: 'Unpin' }
-        : { action: 'pin', label: 'Pin' },
-    )
+    const kept = ctx.kept ?? []
+    if (ctx.item.keptAt) items.push({ action: 'unpin', label: 'Unpin' })
+    else if (kept.length < KEEP_CAP) items.push({ action: 'pin', label: 'Pin' })
+    else
+      for (const k of kept)
+        items.push({ action: 'pin', label: `Pin in place of ${k.name}`, replace: k.id })
     if (ctx.item.attention) items.push({ action: 'dismiss', label: 'Dismiss the flag' })
     if (ctx.item.kind === 'group' && (ctx.item.takes?.length ?? 0) > 1)
       items.push({

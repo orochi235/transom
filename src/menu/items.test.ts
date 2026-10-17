@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { menuFor, targetOf } from '@/menu/items.ts'
 import type { WallItem } from '@shared/protocol.ts'
+import { KEEP_CAP } from '@shared/keep.ts'
 
 const item = (over: Partial<WallItem> = {}): WallItem => ({
   id: 'a',
@@ -31,6 +32,17 @@ describe('menuFor', () => {
     expect(actions(target, { item: item(), canUndo: false })).toContain('pin')
     expect(actions(target, { item: item({ keptAt: 2000 }), canUndo: false })).toContain('unpin')
     expect(actions(target, { item: item({ keptAt: 2000 }), canUndo: false })).not.toContain('pin')
+  })
+
+  it('at the cap, offers to pin in place of each kept card, longest-kept first', () => {
+    const target = targetOf(['transom', 'a'])
+    const kept = Array.from({ length: KEEP_CAP }, (_, i) =>
+      item({ id: `k${i}`, name: `kept ${i}`, keptAt: 2000 + i }),
+    )
+    const rows = menuFor(target, { item: item(), canUndo: false, kept }).filter((r) => r.action === 'pin')
+    expect(rows).toHaveLength(KEEP_CAP)
+    expect(rows[0]).toEqual({ action: 'pin', label: 'Pin in place of kept 0', replace: 'k0' })
+    expect(actions(target, { item: item(), canUndo: false, kept: kept.slice(1) })).toContain('pin')
   })
 
   it('offers to dismiss only a card that is asking', () => {

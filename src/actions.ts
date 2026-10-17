@@ -27,8 +27,9 @@ export type ZonePatch = {
  * no daemon to answer, and reduces these against a script instead.
  */
 export type Actions = {
-  /** Rescue an artifact, or let it go again. */
-  keep: (id: string, on: boolean) => void
+  /** Rescue an artifact, or let it go again. At the cap a rescue names the
+   *  kept artifact it replaces. */
+  keep: (id: string, on: boolean, replace?: string) => void
   /** Take one artifact now, ahead of its clock. */
   expire: (id: string) => void
   /** Stop it asking to be looked at. `question` closes a question rather than
@@ -96,7 +97,10 @@ const dataUrl = (blob: Blob) =>
 const zone = (name: string) => `/api/zones/${encodeURIComponent(name)}`
 
 const live: Actions = {
-  keep: (id, on) => post(`/api/items/${id}/keep?on=${on ? '1' : '0'}`),
+  keep: (id, on, replace) =>
+    post(
+      `/api/items/${id}/keep?on=${on ? '1' : '0'}${replace === undefined ? '' : `&replace=${encodeURIComponent(replace)}`}`,
+    ),
   expire: (id) => post(`/api/items/${id}/expire`),
   dismiss: (id, question, take) => {
     const query = new URLSearchParams()
@@ -164,7 +168,7 @@ export const installActions = (next: Actions) => {
 /** The wall writes through this and never through `fetch` directly. Read per
  *  call rather than bound once, so an install after module load still takes. */
 export const actions: Actions = {
-  keep: (id, on) => current.keep(id, on),
+  keep: (id, on, replace) => current.keep(id, on, replace),
   expire: (id) => current.expire(id),
   dismiss: (id, question, take) => current.dismiss(id, question, take),
   answer: (id, answer) => current.answer(id, answer),

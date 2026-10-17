@@ -72,9 +72,13 @@ export function mountItems(app: Express, opts: { broadcast: (msg: ServerMessage)
   })
 
   app.post('/api/items/:id/keep', async (req, res) => {
-    const keptAt = await store.keep(req.params.id, req.query.on !== '0')
-    if (keptAt !== false) broadcast({ type: 'keep', id: req.params.id, keptAt })
-    res.json({ ok: keptAt !== false, keptAt: keptAt === false ? null : keptAt })
+    const replace = typeof req.query.replace === 'string' ? req.query.replace : undefined
+    const kept = await store.keep(req.params.id, req.query.on !== '0', replace)
+    if (kept === 'full') return res.status(409).json({ ok: false, full: true })
+    if (kept === false) return res.json({ ok: false, keptAt: null })
+    if (kept.released) broadcast({ type: 'keep', id: kept.released, keptAt: null })
+    broadcast({ type: 'keep', id: req.params.id, keptAt: kept.keptAt })
+    res.json({ ok: true, keptAt: kept.keptAt })
   })
 
   // The wall already takes everything eventually; this only says when. The

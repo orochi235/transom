@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Sky } from '@/backends/Sky.tsx'
 import { CardMenu } from '@/menu/CardMenu.tsx'
+import { keptOf } from '@shared/keep.ts'
 import { fakeFlags } from '@/debug-flags.ts'
 import { Lightbox } from '@/Lightbox.tsx'
 import { Axes } from '@/nav/Axes.tsx'
@@ -251,6 +252,7 @@ export function WebglBackend(props: Props) {
           zoneCount={zoneCount}
           zonePinned={menuZone !== null && menuZone in props.pinnedZones}
           armed={armed}
+          kept={keptOf(props.items)}
           look={props.params.menu}
           allowParallax={props.params.general.parallax}
           onAct={act}

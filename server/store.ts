@@ -1,6 +1,7 @@
 import { clearAttention, setKept } from './sidecar.ts'
 import type { Poster, Take, WallItem } from '@shared/protocol.ts'
 import { MAX_TAKES, posterOf } from '@shared/groups.ts'
+import { KEEP_CAP, keptOf } from '@shared/keep.ts'
 import { entries, isOpen, listeners, repost, takeOwner, type Entry, type Files } from './store/entries.ts'
 import { close, closeAll, closeTake, type Closed } from './store/questions.ts'
 
@@ -116,11 +117,31 @@ export function forget(sourcePath: string): string | null {
 /**
  * Rescues an item, or lets one go again. The sidecar carries it, so the rescue
  * survives a restart; `keptAt` freezes the item's decay where it stood.
+ *
+ * At `KEEP_CAP` a rescue must name the kept item it `replace`s, which is let go
+ * first; without one it is refused as `full`.
  */
-export async function keep(id: string, on: boolean): Promise<number | null | false> {
+export async function keep(
+  id: string,
+  on: boolean,
+  replace?: string,
+): Promise<{ keptAt: number | null; released?: string } | 'full' | false> {
   const entry = entries.get(id)
   if (!entry) return false
-  const keptAt = on ? Date.now() : null
+  let released: string | undefined
+  if (on && entry.item.keptAt === undefined) {
+    if (keptOf([...entries.values()].map((e) => e.item)).length >= KEEP_CAP) {
+      const out = replace === undefined ? undefined : entries.get(replace)
+      if (out?.item.keptAt === undefined) return 'full'
+      await setKeptOn(out, null)
+      released = out.item.id
+    }
+  }
+  const keptAt = await setKeptOn(entry, on ? Date.now() : null)
+  return released === undefined ? { keptAt } : { keptAt, released }
+}
+
+async function setKeptOn(entry: Entry, keptAt: number | null): Promise<number | null> {
   if (keptAt === null) delete entry.item.keptAt
   else entry.item.keptAt = keptAt
   await setKept(entry.sourcePath, keptAt)

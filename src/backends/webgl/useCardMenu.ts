@@ -2,7 +2,7 @@ import { type Dispatch, useCallback, useEffect, useRef, useState } from 'react'
 import { actions } from '@/actions.ts'
 import type { MenuAt } from '@/menu/CardMenu.tsx'
 import { copyArtifact } from '@/menu/copy.ts'
-import type { Action } from '@/menu/items.ts'
+import type { Action, Item } from '@/menu/items.ts'
 import { cardOf, type ViewAction, type ViewState } from '@/view-state.ts'
 import { posterTake } from '@shared/groups.ts'
 import type { WallItem } from '@shared/protocol.ts'
@@ -53,7 +53,7 @@ export function useCardMenu(
   const zoneCount = menuZone === null ? 0 : items.filter((i) => i.zone === menuZone).length
 
   const act = useCallback(
-    (action: Action, app?: number) => {
+    ({ action, app, replace }: Item) => {
       const target = menu?.target
       // Two clicks, not a `confirm()`: a browser modal blocks the page's event
       // loop, and this is the one action that can take a whole zone.
@@ -97,7 +97,7 @@ export function useCardMenu(
         return void copyArtifact(menuItem).catch((e) => console.warn('[menu] copy failed', e))
       if (action === 'copyPath' && menuItem)
         return void navigator.clipboard?.writeText(menuItem.path).catch(() => {})
-      if (action === 'pin' || action === 'unpin') return actions.keep(id, action === 'pin')
+      if (action === 'pin' || action === 'unpin') return actions.keep(id, action === 'pin', replace)
       if (action === 'expire') {
         setExpired(true)
         return actions.expire(id)

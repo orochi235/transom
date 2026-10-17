@@ -1232,19 +1232,22 @@ rescue is written to the sidecar as `kept`, because adoption re-reads sidecars
 and a keep held only in memory would let the file expire on the next daemon
 restart. The file does not move: it is safe from the wall, not from `rm`.
 
-**Unbuilt: the keep set has no bound, and pinned cards have no band of their
-own.**
+**The keep set holds twelve** (`KEEP_CAP` in `shared/keep.ts`). Below it the
+menu offers Pin; at it, Pin becomes one row per kept card — *Pin in place of
+<name>*, longest-kept first — and choosing one lets that card go as the new one
+is kept. The daemon refuses a rescue at the cap that names no kept card to
+replace, with a 409. Without a bound, "permanence earned by attention"
+collapses into one click and forever, and one click is not attention: the
+sediment folder comes back with extra steps. Twelve is a guess about a pressure
+nobody has felt yet — on Oct 17 2026 no card on the wall or in the trash was
+kept.
 
-- **The bound.** The keep set holds N (start at 12), and pinning when it is full
-  means choosing what the new one displaces — the menu is where that choice
-  surfaces. Without a bound, "permanence earned by attention" collapses into one
-  click and forever, and one click is not attention: the sediment folder comes
-  back with extra steps. It waits on living with a wall that can rescue at all,
-  since twelve is a guess about a pressure nobody has felt yet.
-- **The reserved band.** Pinned cards leave the flowing set for a band of their
-  own, and the flowing set arranges in the space that is left — one rule for
-  every arrangement, rather than each packing around a hole. Today a pinned card
-  stays in its pile at its rank, set apart only by its frozen fade.
+**Unbuilt: pinned cards have no band of their own.**
+
+Pinned cards leave the flowing set for a band of their own, and the flowing set
+arranges in the space that is left — one rule for every arrangement, rather
+than each packing around a hole. Today a pinned card stays in its pile at its
+rank, set apart only by its frozen fade.
 
 **Expiry moves a card to a holding trash, kept for 24 hours.** The real loss
 mode is being heads-down for 40 minutes, not glancing up as something dies; a
@@ -1493,8 +1496,8 @@ cycle` is the fix. A keg's page is a build and makes no claim.
 5. ~~The remaining flat arrangements.~~ **Dropped** with the DOM backend, which
    step 4 made redundant. `[` / `]` still cycles, over a set of one.
 6. Rescue, expiry, trash, undo. **Partly done** — pinning, expire-now and a
-   ten-deep undo ship with the right-click menu; the capacity bound and the
-   reserved band do not. See *Rescue, expiry, and the trash*.
+   ten-deep undo ship with the right-click menu, and so does the bound of
+   twelve; the reserved band does not. See *Rescue, expiry, and the trash*.
 7. Arrival motion. An artifact that just landed looks exactly like one that has
    been up an hour, minus its age chip. `bloom` (*Entry behavior is a separate
    axis*) is the designed answer but pulls the other way — it exists to make an

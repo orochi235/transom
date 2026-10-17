@@ -1,6 +1,7 @@
 import { UNKNOWN } from '@shared/build.ts'
 import { BEAT_MS, type ServerMessage, type WallItem, type ZoneSettings } from '@shared/protocol.ts'
 import type { Actions } from '@/actions.ts'
+import { KEEP_CAP, keptOf } from '@shared/keep.ts'
 import type { Sink, Transport } from '@/transport.ts'
 import { zipHere } from '@/menu/zip.ts'
 import { zipName, zipPlanForGroup, zipPlanForZone } from '@shared/zipPlan.ts'
@@ -183,9 +184,15 @@ export function createDemoDaemon() {
   }
 
   const actions: Actions = {
-    keep: (id, on) => {
+    keep: (id, on, replace) => {
       const item = items.get(id)
       if (!item) return
+      if (on && item.keptAt === undefined && keptOf(items.values()).length >= KEEP_CAP) {
+        const out = replace === undefined ? undefined : items.get(replace)
+        if (out?.keptAt === undefined) return
+        delete out.keptAt
+        send({ type: 'keep', id: out.id, keptAt: null })
+      }
       const keptAt = on ? Date.now() : null
       if (keptAt === null) delete item.keptAt
       else item.keptAt = keptAt
