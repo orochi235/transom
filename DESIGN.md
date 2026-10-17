@@ -1413,11 +1413,14 @@ everything a node sends a remote wall goes through `curl`: `post`, `ask`,
 - **Arrival rate.** Gates everything downstream. At 3/hour there is no packing
   problem, no memory problem, no zones, and the whole arrangement layer is
   decoration. At 200/hour the wall is a blur and nothing reads at any depth.
-  Measured from the daemon log, Sep 7 – Oct 8 2026: 18,816 arrivals, about 25
-  an hour averaged over the clock, with a busiest hour of at least 74 (read off
-  the trash's mtimes, so live cards are missing from it). Three zones — `astv`,
-  `weasel`, `brick-icons` — sent 59% of them. The log's lines carry a
-  timestamp from Oct 8, so peaks can now be read directly rather than bounded.
+  Measured from the daemon log: about 10 an hour averaged over the clock, Sep 7
+  – Oct 8 2026 (7,248 distinct cards; the log's 18,905 `[arrive]` lines
+  include every restart re-adopting the whole inbox, so count ids, or skip
+  lines marked `via start`). Oct 8 – 17, when lines carry timestamps: 1,475
+  arrivals over 197 hours, 7.5 an hour. Half of those hours saw none; of the
+  rest the median took 10, one in ten took 30 or more, and the busiest took 111
+  (`weasel`, Oct 12 17:00), with 35 in one minute at its sharpest. One or two
+  zones send most of it — `weasel` and `astv` sent 77% of that week.
 - **Does anything on the wall have thickness?** Every primitive is a flat plane
   today — cards, zone outlines, labels — while a pile occupies a volume many
   times the wall's own height. The `mesh` kind arrived and did *not* settle
