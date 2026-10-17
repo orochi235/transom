@@ -10,6 +10,7 @@ import { chips } from '@/schema/params/chips.ts'
 import { attention } from '@/schema/params/attention.ts'
 import { zoneGrid } from '@/schema/params/zoneGrid.ts'
 import { inbox } from '@/schema/params/inbox.ts'
+import { kept } from '@/schema/params/kept.ts'
 import { camera } from '@/schema/params/camera.ts'
 import { nav } from '@/schema/params/nav.ts'
 import { menu } from '@/schema/params/menu.ts'
@@ -57,6 +58,7 @@ export const PARAMS: PrefGroup = {
     attention,
     zoneGrid,
     inbox,
+    kept,
     camera,
     nav,
     menu,

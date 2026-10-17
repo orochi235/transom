@@ -57,4 +57,12 @@ export type ArrangementParams = {
     /** River: rows the cards travel in. */
     lanes: number
   }
+  /** The band kept artifacts leave the flowing set for, under every
+   *  arrangement. */
+  kept: {
+    /** Its share of the wall's height. */
+    height: number
+    /** World space between two cards, and around the row. */
+    gap: number
+  }
 }

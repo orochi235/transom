@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { flowBox } from '@/arrangements/kept.ts'
 import { containerFor, frontSlotOf, gridCells } from '@/arrangements/zones.ts'
 import { frameExtent, framePose } from '@/camera/frame.ts'
 import { clampPan, revealPan } from '@/camera/pan.ts'
@@ -30,7 +31,7 @@ export function useFraming({
   cursor: string | null
   wake: () => void
 }) {
-  const { zoneNamesRef, flatRef, streamBox, bases, panX, move, pose, paramsRef } = s
+  const { zoneNamesRef, flatRef, streamBox, keptBox, bases, panX, move, pose, paramsRef } = s
   // The arrows move the cursor across a row that may be wider than the window,
   // so the row follows it rather than the cursor walking off the edge.
   useEffect(() => {
@@ -58,7 +59,11 @@ export function useFraming({
     // `minCells` would change nothing you can see. Only while zones are short
     // of it: once there are enough, every cell is claimed and the fronts are
     // the whole grid already.
-    const container = containerFor(zoneNamesRef.current.length, aspect, params.zoneGrid)
+    const container = flowBox(
+      containerFor(zoneNamesRef.current.length, aspect, params.zoneGrid),
+      params,
+      keptBox.current !== null,
+    )
     const zones = zoneNamesRef.current
     const spare =
       !flatRef.current && zones.length < params.zoneGrid.minCells
@@ -66,7 +71,8 @@ export function useFraming({
             .slice(zones.length)
             .map((cell) => frontSlotOf(cell, params))
         : []
-    const wall = (flatRef.current ? streamBox.current : unionOf([...bases.current.values(), ...spare])) ?? {
+    const flow = flatRef.current ? [streamBox.current] : [...bases.current.values(), ...spare]
+    const wall = unionOf([...flow, keptBox.current].filter((r) => r !== null)) ?? {
       x: 0,
       y: 0,
       z: 0,

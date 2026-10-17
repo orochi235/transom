@@ -84,6 +84,8 @@ export function useWallState({
    *  arrows page when there are no piles — and the box they cover. */
   const stream = useRef<string[]>([])
   const streamBox = useRef<Rect | null>(null)
+  /** The kept band's cards, together: framed with the wall, never a zone. */
+  const keptBox = useRef<Rect | null>(null)
   const offWallRef = useRef(0)
   const flatRef = useRef(!!arrangement.flat)
   flatRef.current = !!arrangement.flat
@@ -152,6 +154,7 @@ export function useWallState({
     zoneCounts,
     stream,
     streamBox,
+    keptBox,
     offWallRef,
     flatRef,
     viewRef,

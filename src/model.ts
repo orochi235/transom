@@ -12,6 +12,8 @@ export type StackItem = LayoutItem & {
   /** The band's range leaves this one out. Read for rank, not for opacity:
    *  what it buys is the pile closing over the gap. */
   excluded: boolean
+  /** When it was rescued. A kept item leaves its pile for the kept band. */
+  keptAt?: number
 }
 
 /** `now` is the daemon's clock, not the browser's — decay stays server-anchored
@@ -32,5 +34,6 @@ export function toStackItems(
     // restart a flag's hold.
     emphasis: emphasisAt(i.attention, i.bornAt, clock.now),
     excluded: excluded.has(i.id),
+    ...(i.keptAt === undefined ? {} : { keptAt: i.keptAt }),
   }))
 }

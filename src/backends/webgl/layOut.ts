@@ -1,5 +1,6 @@
 import type { Rect } from 'windease'
 import type { Arrangement, TransomChannels } from '@/arrangements/index.ts'
+import { IN_KEPT_BAND } from '@/arrangements/kept.ts'
 import { containerFor } from '@/arrangements/zones.ts'
 import type { StackItem } from '@/model.ts'
 import type { Plan } from '@/nav/Minimap.tsx'
@@ -35,7 +36,7 @@ export function layOut({
   onPlan: (plan: Plan) => void
   onOffWall: (count: number) => void
 }) {
-  const { zoneNamesRef, setZoneNames, cells, bases, stream, streamBox, offWallRef } = s
+  const { zoneNamesRef, setZoneNames, cells, bases, stream, streamBox, keptBox, offWallRef } = s
   const { revealed, reveal, planAt, cardsByZone, zoneCounts } = s
   const result = arrangement.strategy.layout({
     items: model,
@@ -67,10 +68,18 @@ export function layOut({
   // labels, the counts, the plan, the cursor — is drawn from these, so
   // leaving them empty is what takes it all away.
   const flat = !!arrangement.flat
-  const placedRects = result.placements as Map<string, Rect>
+  // The kept band is wall geometry of its own: a kept card counted into its
+  // zone's cell would stretch that cell down to the band.
+  const placedRects = new Map<string, Rect>()
+  const banded: string[] = []
+  for (const [id, rect] of result.placements as Map<string, Rect>) {
+    if ((channels.get(id) as Record<string, number> | undefined)?.[IN_KEPT_BAND]) banded.push(id)
+    else placedRects.set(id, rect)
+  }
+  keptBox.current = unionOf(banded.map((id) => result.placements.get(id) as Rect))
   cells.current = flat ? new Map() : zoneCellsOf(placedRects, zoneFor)
   bases.current = flat ? new Map() : baseCellsOf(placedRects, zoneFor)
-  stream.current = flat ? [...placedRects.keys()] : []
+  stream.current = flat ? [...placedRects.keys(), ...banded] : []
   streamBox.current = flat ? unionOf([...placedRects.values()]) : null
   const off = flat ? (result.unplaced?.length ?? 0) : 0
   if (off !== offWallRef.current) {
@@ -126,12 +135,17 @@ export function layOut({
   cardsByZone.current = new Map(
     [...ranked].map(([zone, list]) => [zone, list.sort((a, b) => b.z - a.z).map((e) => e.id)]),
   )
+  // Behind the pile in its zone's order, so stepping through a zone still
+  // reaches them, and never its front.
+  for (const id of banded) cardsByZone.current.get(zoneFor.get(id) ?? '')?.push(id)
   // The front of each pile, which is the only card that wears an age chip:
   // a rank behind it is mostly hidden by the card in front of it.
   const fronts = new Set<string>()
   for (const list of cardsByZone.current.values()) if (list[0]) fronts.add(list[0])
-  // Nothing on a flat wall is buried, so every card is a front.
+  // Nothing on a flat wall or in the kept band is buried, so every card there
+  // is a front.
   for (const id of stream.current) fronts.add(id)
+  for (const id of banded) fronts.add(id)
   // What the zone holds under the band's filters, not what the pile draws:
   // `lod.rankCap` leaves the deep ranks unplaced, and a count of the placed
   // ones stalls at the cap.

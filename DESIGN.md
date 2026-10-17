@@ -1242,12 +1242,15 @@ sediment folder comes back with extra steps. Twelve is a guess about a pressure
 nobody has felt yet — on Oct 17 2026 no card on the wall or in the trash was
 kept.
 
-**Unbuilt: pinned cards have no band of their own.**
-
-Pinned cards leave the flowing set for a band of their own, and the flowing set
-arranges in the space that is left — one rule for every arrangement, rather
-than each packing around a hole. Today a pinned card stays in its pile at its
-rank, set apart only by its frozen fade.
+**Kept cards leave the flowing set for a band along the wall's bottom edge**,
+and the arrangement lays out what is left in the space above it — one rule for
+every arrangement, rather than each packing around a hole. `withKeptBand`
+(`src/arrangements/kept.ts`) wraps both arrangements to do it. The band is a
+row, longest-kept first, taking `kept.height` of the wall only while something
+is kept. A card just pinned slides down out of its pile, and the pile closes
+over the gap. The band is no zone's: its cards stay out of zone cells and zone
+chrome, the camera frames it with the wall, and stepping through a zone reaches
+its kept cards after the pile.
 
 **Expiry moves a card to a holding trash, kept for 24 hours.** The real loss
 mode is being heads-down for 40 minutes, not glancing up as something dies; a
@@ -1495,9 +1498,8 @@ cycle` is the fix. A keg's page is a build and makes no claim.
    here rather than last, because one pile per zone is what `stack` is.
 5. ~~The remaining flat arrangements.~~ **Dropped** with the DOM backend, which
    step 4 made redundant. `[` / `]` still cycles, over a set of one.
-6. Rescue, expiry, trash, undo. **Partly done** — pinning, expire-now and a
-   ten-deep undo ship with the right-click menu, and so does the bound of
-   twelve; the reserved band does not. See *Rescue, expiry, and the trash*.
+6. ~~Rescue, expiry, trash, undo.~~ **Done** — pinning, expire-now, a ten-deep
+   undo, the bound of twelve and the kept band. See *Rescue, expiry, and the trash*.
 7. Arrival motion. An artifact that just landed looks exactly like one that has
    been up an hour, minus its age chip. `bloom` (*Entry behavior is a separate
    axis*) is the designed answer but pulls the other way — it exists to make an

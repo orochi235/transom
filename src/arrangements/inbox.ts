@@ -149,7 +149,7 @@ export function riverLayout(items: readonly InboxItem[], box: Size, cfg: Cfg, la
 }
 
 /** The texture tier a card of this world side needs to stay sharp. */
-const edgeFor = (side: number) => (side >= 0.2 ? 512 : side >= 0.05 ? 128 : 32)
+export const edgeFor = (side: number) => (side >= 0.2 ? 512 : side >= 0.05 ? 128 : 32)
 
 /**
  * Every artifact at once, zones ignored, newest first — "what has arrived",

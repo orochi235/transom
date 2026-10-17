@@ -22,17 +22,17 @@ function glideAt(glide: Glide, now: number, ms: number): Rect {
  * Where each key's box stands now, on its way to the target it was last handed.
  * A new target starts from wherever the last move had got to, so a target
  * changed twice mid-flight turns rather than jumping. A key seen for the first
- * time arrives in place. Keys absent from `keep` are forgotten, so one that
+ * time arrives in place, or glides in from `from` when handed one. Keys absent from `keep` are forgotten, so one that
  * leaves and comes back arrives in place too, not from where it last stood.
  */
 export function createGlides() {
   const glides = new Map<string, Glide>()
   return {
-    at(key: string, to: Rect, now: number, ms: number): Rect {
+    at(key: string, to: Rect, now: number, ms: number, from?: Rect): Rect {
       const glide = glides.get(key)
       if (!glide) {
-        glides.set(key, { from: to, to, at: now })
-        return to
+        glides.set(key, { from: from ?? to, to, at: now })
+        return from ? glideAt(glides.get(key)!, now, ms) : to
       }
       if (!sameRect(glide.to, to)) {
         glides.set(key, { from: glideAt(glide, now, ms), to, at: now })

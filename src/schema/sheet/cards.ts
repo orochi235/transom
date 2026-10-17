@@ -32,6 +32,13 @@ export const cards: PrefGroup = {
         bleed: to('chips.bleed'),
       },
     },
+    kept: {
+      name: 'kept',
+      children: {
+        height: to('kept.height'),
+        gap: to('kept.gap'),
+      },
+    },
     overlay: {
       name: 'overlay',
       children: {
