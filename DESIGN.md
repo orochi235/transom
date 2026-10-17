@@ -1382,6 +1382,13 @@ macOS and Windows use the OS's recursive watcher and `inboxSweep` re-offers
 whatever the store lacks. chokidar stays for Linux, where it is inotify and was
 never the descriptor bomb.
 
+**Unfixed: `watchTree.test.ts` asserts what the watcher does not promise.** Its
+native-backend cases wait 4 seconds for FSEvents to report a write into a
+directory made a moment earlier, and FSEvents sometimes never does. Locally
+`ignores what the caller says to ignore` failed 1 run in 3 on Oct 17, and it failed
+on the fleet the same day. The cases have to either retry the write or assert
+through the sweep, which is the path that guarantees arrival.
+
 **Texture memory is budgeted in bytes, not count.** A 2048² RGBA texture is 16MB
 and a 2048×512 is 4MB; a per-zone item cap bounds nothing. Evict against a byte
 budget, add ~33% for mipmaps, and explicitly `.dispose()` evicted textures — GC
