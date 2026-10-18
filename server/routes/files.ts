@@ -1,10 +1,22 @@
-import type { Express } from 'express'
+import type { Express, Response } from 'express'
 import { readFile } from 'node:fs/promises'
 import * as store from '../store.ts'
 import { withKeyForwarder } from '../page-keys.ts'
 import { readOriginal, serveZip } from '../serveZip.ts'
 import { idFromOrig } from '../itemId.ts'
 import { zipName, zipPlanForGroup, zipPlanForZone } from '@shared/zipPlan.ts'
+
+/**
+ * An original as it landed, for every route that hands one out. An SVG or a
+ * page opened at its own URL is a document on the wall's own origin, where a
+ * script in it could call every route the wall has. Sandboxed, it still renders;
+ * it just runs nothing and reaches nothing.
+ */
+export function sendOriginal(res: Response, path: string) {
+  res.set('Content-Security-Policy', "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:")
+  res.set('X-Content-Type-Options', 'nosniff')
+  res.sendFile(path, { dotfiles: 'allow' })
+}
 
 export function mountFiles(app: Express) {
   app.get('/img/:id', (req, res) => {
@@ -18,12 +30,7 @@ export function mountFiles(app: Express) {
   app.get('/orig/:id', (req, res) => {
     const path = store.resolveOriginal(idFromOrig(req.params.id))
     if (!path) return void res.sendStatus(404)
-    // An SVG or a page opened at this URL is a document on the wall's own
-    // origin, where a script in it could call every route below. Sandboxed, it
-    // still renders; it just runs nothing and reaches nothing.
-    res.set('Content-Security-Policy', "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:")
-    res.set('X-Content-Type-Options', 'nosniff')
-    res.sendFile(path, { dotfiles: 'allow' })
+    sendOriginal(res, path)
   })
 
   // What the lightbox frames a page with, as opposed to what `/orig` hands to a

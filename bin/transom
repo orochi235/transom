@@ -3,7 +3,8 @@
 #
 #   transom post FILE...          puts it on the wall and returns, printing the
 #                                 path it landed at and, on stderr, a `wall:`
-#                                 link that opens its card
+#                                 link that opens its card. `/file/` in place
+#                                 of `/to/` in it serves the file alone
 #   some-generator | transom post reads stdin, writes a .png
 #   transom ask "QUESTION" FILE   asks on the card, waits, prints the answer
 #   transom wait PATH             waits on a question already sent, by the path

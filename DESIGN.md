@@ -1181,6 +1181,13 @@ page, at whatever host name the request used — or to the zone's pile when the
 file is not on the wall. The sender names the file because it cannot know the
 card: a card's id is a hash the daemon makes, and a take hangs on its group's.
 
+`GET /file/:zone/:name` is the same file with no wall around it: swap `/to/` for
+`/file/` in the printed link. It is served as `/orig` serves it, sandbox
+included, so an HTML page opens inert — the lightbox is where a page runs. It
+answers 404 for a file not on the wall rather than falling back to the pile,
+because a file link that answered with a page would read as the file.
+A send prints only the `wall:` link.
+
 **Every route above, and every request on any route that is not a `GET`, needs
 the token from any address but loopback.** Reads stay open, so a wall page
 opened from another host shows the wall but cannot dismiss, keep, answer, draw

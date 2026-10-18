@@ -68,6 +68,6 @@ export default defineConfig({
     strictPort: true,
     // vite answers 403 to a Host it was not told about, and a `wall:` link names the wall's Mac.
     allowedHosts: ['.local'],
-    proxy: { '/img': proxy, '/orig': proxy, '/page': proxy, '/api': proxy, '/ws': proxy },
+    proxy: { '/img': proxy, '/orig': proxy, '/page': proxy, '/to': proxy, '/file': proxy, '/api': proxy, '/ws': proxy },
   },
 })

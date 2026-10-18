@@ -35,7 +35,8 @@ The zone is the directory name of the repository you ran in, so a project is on
 the wall the first time it renders and nothing has to be bound. One zone is one
 pile, which is what makes "which projects are producing" answerable from across
 the room. `transom post` returns at once, printing where the file landed and, on stderr,
-a `wall:` link that opens its card; `transom ask` blocks until someone
+a `wall:` link that opens its card (`/to/` in it swapped for `/file/` opens the
+file alone); `transom ask` blocks until someone
 answers on the card, and prints what they said.
 
 That printed path is how a sender changes its mind later:
