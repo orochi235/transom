@@ -11,7 +11,7 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { homedir } from 'node:os'
-import sharp from 'sharp'
+import sharp, { type Metadata } from 'sharp'
 import { captionFor } from '../server/captionName.ts'
 import type { Stamp } from '../server/xmp.ts'
 
@@ -22,8 +22,11 @@ import type { Stamp } from '../server/xmp.ts'
  */
 const ZONES = ['transom', 'brick-icons', 'weasel', 'windease', 'levar', 'onto'] as const
 
-/** What a stranger's browser downloads per picture, the wall's own cap. */
+/** What a stranger's browser downloads per card, the wall's own cap. */
 const MAX_EDGE = 1024
+/** The lightbox's copy, fetched only when a card is opened. Past this a
+ *  retina screenshot gains nothing a reader can see. */
+const FULL_EDGE = 4096
 
 const INBOX = join(homedir(), 'transom', 'inbox')
 const STAGING = 'demo/staging'
@@ -44,6 +47,9 @@ export type DemoItem = {
   zone: string
   /** Path under `demo/`, which is also what the built site serves. */
   file: string
+  /** The same picture at full size, for the lightbox. Absent where `file`
+   *  already is full size. */
+  full?: string
   /** The caption the real wall would have shown. */
   name: string
   /** The source's own pixels, not the resized file's — what the lightbox
@@ -105,6 +111,19 @@ async function stage() {
   console.log(`\n${staged} staged in ${STAGING}/. Delete what should not go public, then npm run demo:pack.`)
 }
 
+/** Writes the lightbox's full-size copy beside a card's file, where the card
+ *  had to be shrunk. Returns its path under `demo/`. */
+async function packFull(src: string, file: string, meta: Metadata): Promise<string | undefined> {
+  if (Math.max(meta.width ?? 0, meta.height ?? 0) <= MAX_EDGE) return undefined
+  const full = file.replace(/\.webp$/, '.full.webp')
+  await sharp(src)
+    .rotate()
+    .resize({ width: FULL_EDGE, height: FULL_EDGE, fit: 'inside', withoutEnlargement: true })
+    .webp({ quality: 82 })
+    .toFile(join('demo', full))
+  return full
+}
+
 async function pack() {
   const names = (await readdir(STAGING).catch(() => [])).filter((n) =>
     PICTURES.has(extname(n).toLowerCase()),
@@ -136,6 +155,7 @@ async function pack() {
       .webp({ quality: 82 })
       .toFile(join('demo', file))
     bytes += info.size
+    const full = await packFull(src, file, meta)
     const original = basename(name.slice(zone.length + 2))
     const side = await sidecarOf(src)
     items.push({
@@ -144,12 +164,13 @@ async function pack() {
       name: captionFor(original, side),
       w: meta.width ?? info.width,
       h: meta.height ?? info.height,
+      ...(full ? { full } : {}),
       bornAt: (await stat(src)).mtimeMs,
       ...(side?.repo ? { repo: side.repo } : {}),
       ...(side?.sha ? { sha: side.sha } : {}),
     })
     console.log(
-      `${String(i + 1).padStart(4)}/${names.length}  ${file}  ${info.width}×${info.height}  ${(info.size / 1024).toFixed(0)}k  ${zone}`,
+      `${String(i + 1).padStart(4)}/${names.length}  ${file}  ${info.width}×${info.height}  ${(info.size / 1024).toFixed(0)}k  ${zone}${full ? '  + full' : ''}`,
     )
   }
 

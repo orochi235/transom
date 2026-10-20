@@ -97,16 +97,17 @@ export function createDemoDaemon() {
     const pic = pictures[next % pictures.length]!
     next += 1
     const url = urlOf(pic.file)
+    const origUrl = pic.full ? urlOf(pic.full) : url
     return {
       id: `demo-${serial++}`,
       url,
-      origUrl: url,
+      origUrl,
       zone: pic.zone,
       name: pic.name,
       bornAt,
       // No filesystem behind a browser, so "copy path" copies where the
       // picture actually is. A local path would mean nothing to a stranger.
-      path: new URL(url, location.href).href,
+      path: new URL(origUrl, location.href).href,
       w: pic.w,
       h: pic.h,
       ...(pic.repo ? { repo: pic.repo } : {}),

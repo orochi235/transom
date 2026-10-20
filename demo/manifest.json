@@ -6,6 +6,7 @@
       "name": "wall",
       "w": 3200,
       "h": 1800,
+      "full": "img/030.full.webp",
       "bornAt": 1790475541480.6416,
       "repo": "transom",
       "sha": "04b0eb4"
@@ -16,6 +17,7 @@
       "name": "transom",
       "w": 2400,
       "h": 1350,
+      "full": "img/031.full.webp",
       "bornAt": 1790475541515.8337,
       "repo": "transom",
       "sha": "04b0eb4"
@@ -26,6 +28,7 @@
       "name": "transom",
       "w": 2400,
       "h": 1350,
+      "full": "img/032.full.webp",
       "bornAt": 1790475541547.9287,
       "repo": "transom",
       "sha": "97f93f6"
@@ -36,6 +39,7 @@
       "name": "lightbox",
       "w": 3200,
       "h": 1800,
+      "full": "img/033.full.webp",
       "bornAt": 1790475541776.4385,
       "repo": "transom",
       "sha": "04b0eb4"
@@ -46,6 +50,7 @@
       "name": "demo-row",
       "w": 2400,
       "h": 1350,
+      "full": "img/034.full.webp",
       "bornAt": 1790475541865.9255,
       "repo": "transom",
       "sha": "dacecbf"
@@ -56,6 +61,7 @@
       "name": "stack",
       "w": 3200,
       "h": 1800,
+      "full": "img/035.full.webp",
       "bornAt": 1790475542024.873,
       "repo": "transom",
       "sha": "04b0eb4"
@@ -66,6 +72,7 @@
       "name": "portfolio-tile",
       "w": 2880,
       "h": 2000,
+      "full": "img/036.full.webp",
       "bornAt": 1790475542102.0273,
       "repo": "transom",
       "sha": "22979a0"
@@ -76,6 +83,7 @@
       "name": "transom",
       "w": 2400,
       "h": 1350,
+      "full": "img/037.full.webp",
       "bornAt": 1790475542133.854,
       "repo": "transom",
       "sha": "04b0eb4"
@@ -86,6 +94,7 @@
       "name": "demo-row",
       "w": 2400,
       "h": 1350,
+      "full": "img/039.full.webp",
       "bornAt": 1790475542329.099,
       "repo": "transom",
       "sha": "dacecbf"
@@ -96,6 +105,7 @@
       "name": "band-renamed",
       "w": 2880,
       "h": 400,
+      "full": "img/040.full.webp",
       "bornAt": 1790475542367.5073,
       "repo": "transom",
       "sha": "22979a0"
@@ -106,6 +116,7 @@
       "name": "help",
       "w": 3200,
       "h": 1800,
+      "full": "img/041.full.webp",
       "bornAt": 1790475542478.9573,
       "repo": "transom",
       "sha": "04b0eb4"
@@ -116,6 +127,7 @@
       "name": "list",
       "w": 3200,
       "h": 1800,
+      "full": "img/042.full.webp",
       "bornAt": 1790475542631.1475,
       "repo": "transom",
       "sha": "04b0eb4"
@@ -126,6 +138,7 @@
       "name": "sheet",
       "w": 1714,
       "h": 760,
+      "full": "img/000.full.webp",
       "bornAt": 1790475542961.1035,
       "repo": "brick-icons",
       "sha": "1b6a74b"
@@ -145,6 +158,7 @@
       "name": "2654a",
       "w": 1714,
       "h": 408,
+      "full": "img/002.full.webp",
       "bornAt": 1790475542980.3882,
       "repo": "smooth-subdivide",
       "sha": "5d7c1b7"
@@ -155,6 +169,7 @@
       "name": "fail-regressed",
       "w": 1800,
       "h": 1922,
+      "full": "img/003.full.webp",
       "bornAt": 1790475543063.0588,
       "repo": "brick-icons",
       "sha": "6c4b539"
@@ -175,6 +190,7 @@
       "name": "zoom",
       "w": 1320,
       "h": 960,
+      "full": "img/005.full.webp",
       "bornAt": 1790475543093.5103,
       "repo": "smooth-subdivide",
       "sha": "5d81d35"
@@ -185,6 +201,7 @@
       "name": "onto-symbols",
       "w": 1280,
       "h": 3092,
+      "full": "img/006.full.webp",
       "bornAt": 1790475543125.408,
       "repo": "brick-icons",
       "sha": "624a787"
@@ -195,6 +212,7 @@
       "name": "fills-naive",
       "w": 1714,
       "h": 1464,
+      "full": "img/007.full.webp",
       "bornAt": 1790475543155.803,
       "repo": "smooth-subdivide",
       "sha": "5d81d35"
@@ -205,6 +223,7 @@
       "name": "specimens-naive",
       "w": 3250,
       "h": 4200,
+      "full": "img/008.full.webp",
       "bornAt": 1790475543237.3894,
       "repo": "smooth-subdivide",
       "sha": "5d81d35"
@@ -215,6 +234,7 @@
       "name": "fail-still",
       "w": 1800,
       "h": 5666,
+      "full": "img/009.full.webp",
       "bornAt": 1790475543461.4624,
       "repo": "brick-icons",
       "sha": "6c4b539"
@@ -225,6 +245,7 @@
       "name": "sheet",
       "w": 2278,
       "h": 2441,
+      "full": "img/010.full.webp",
       "bornAt": 1790475543538.7234,
       "repo": "smooth-subdivide",
       "sha": "3ec9ffa"
@@ -235,6 +256,7 @@
       "name": "regressions",
       "w": 1800,
       "h": 2076,
+      "full": "img/011.full.webp",
       "bornAt": 1790475543635.5046,
       "repo": "brick-icons",
       "sha": "f934b0f"
@@ -245,6 +267,7 @@
       "name": "fills-naive-2",
       "w": 1714,
       "h": 1464,
+      "full": "img/012.full.webp",
       "bornAt": 1790475543674.368,
       "repo": "smooth-subdivide",
       "sha": "5d81d35"
@@ -275,6 +298,7 @@
       "name": "ts-before-light",
       "w": 1400,
       "h": 48,
+      "full": "img/045.full.webp",
       "bornAt": 1790475543739.4304,
       "repo": "weasel",
       "sha": "c742abcc6"
@@ -294,6 +318,7 @@
       "name": "after-ui-foundations-tooloptionsbar--fromaschema",
       "w": 1282,
       "h": 58,
+      "full": "img/047.full.webp",
       "bornAt": 1790475543879.9873,
       "repo": "shots"
     },
@@ -303,6 +328,7 @@
       "name": "index-before",
       "w": 1400,
       "h": 900,
+      "full": "img/048.full.webp",
       "bornAt": 1790475543976.469,
       "repo": "weasel",
       "sha": "f3b02732d"
@@ -331,6 +357,7 @@
       "name": "sidebar-after",
       "w": 1400,
       "h": 900,
+      "full": "img/051.full.webp",
       "bornAt": 1790475544097.9934,
       "repo": "weasel",
       "sha": "e4d03e6d9"
@@ -341,6 +368,7 @@
       "name": "forge-index-deps",
       "w": 1400,
       "h": 900,
+      "full": "img/052.full.webp",
       "bornAt": 1790475544152.5898,
       "repo": "agent-a5458aa2df579a748",
       "sha": "c755d1e93"
@@ -361,6 +389,7 @@
       "name": "before-primitives-prefs--form",
       "w": 814,
       "h": 1108,
+      "full": "img/054.full.webp",
       "bornAt": 1790475544360.8804,
       "repo": "shots"
     },
@@ -370,6 +399,7 @@
       "name": "before-ui-foundations-tooloptionsbar--fromaschema",
       "w": 1282,
       "h": 58,
+      "full": "img/055.full.webp",
       "bornAt": 1790475544426.0852,
       "repo": "shots"
     },
@@ -379,6 +409,7 @@
       "name": "after-primitives-prefs--form",
       "w": 814,
       "h": 1108,
+      "full": "img/056.full.webp",
       "bornAt": 1790475544482.1965,
       "repo": "shots"
     },
@@ -388,6 +419,7 @@
       "name": "zoom-topbar-nocamera",
       "w": 1440,
       "h": 900,
+      "full": "img/057.full.webp",
       "bornAt": 1790475544547.874,
       "repo": "weasel",
       "sha": "843a477c1"
@@ -398,6 +430,7 @@
       "name": "forge-gallery",
       "w": 1400,
       "h": 900,
+      "full": "img/058.full.webp",
       "bornAt": 1790475544608.5405,
       "repo": "agent-a5458aa2df579a748",
       "sha": "c755d1e93"
@@ -418,6 +451,7 @@
       "name": "packlab-pr6",
       "w": 1280,
       "h": 720,
+      "full": "img/060.full.webp",
       "bornAt": 1790475544737.4878,
       "repo": "windease",
       "sha": "db2d650"
@@ -428,6 +462,7 @@
       "name": "packlab-deps",
       "w": 1280,
       "h": 720,
+      "full": "img/061.full.webp",
       "bornAt": 1790475544749.7554,
       "repo": "windease",
       "sha": "d659e74"
@@ -438,6 +473,7 @@
       "name": "lab-map",
       "w": 1280,
       "h": 720,
+      "full": "img/017.full.webp",
       "bornAt": 1790475544840.0754,
       "repo": "levar",
       "sha": "dd9a7d2"
@@ -448,6 +484,7 @@
       "name": "lab-switcher",
       "w": 1280,
       "h": 720,
+      "full": "img/018.full.webp",
       "bornAt": 1790475544856.9495,
       "repo": "levar",
       "sha": "bd5008a"
@@ -478,6 +515,7 @@
       "name": "map",
       "w": 1280,
       "h": 720,
+      "full": "img/021.full.webp",
       "bornAt": 1790475544886.483,
       "repo": "levar",
       "sha": "59f23f8"
@@ -488,6 +526,7 @@
       "name": "lab-map2",
       "w": 1280,
       "h": 720,
+      "full": "img/022.full.webp",
       "bornAt": 1790475544900.6167,
       "repo": "levar",
       "sha": "dd9a7d2"
@@ -498,6 +537,7 @@
       "name": "pins2",
       "w": 1040,
       "h": 240,
+      "full": "img/023.full.webp",
       "bornAt": 1790475544907.9868,
       "repo": "onto",
       "sha": "e66d779"
@@ -508,6 +548,7 @@
       "name": "before",
       "w": 3102,
       "h": 1902,
+      "full": "img/024.full.webp",
       "bornAt": 1790475544987.3796,
       "repo": "onto",
       "sha": "a1c6614"
@@ -518,6 +559,7 @@
       "name": "chart-new",
       "w": 1480,
       "h": 440,
+      "full": "img/025.full.webp",
       "bornAt": 1790475545005.8733,
       "repo": "tmp"
     },
@@ -527,6 +569,7 @@
       "name": "sheet",
       "w": 1440,
       "h": 300,
+      "full": "img/026.full.webp",
       "bornAt": 1790475545017.881,
       "repo": "onto",
       "sha": "b4221a7"
@@ -537,6 +580,7 @@
       "name": "chart-old",
       "w": 1480,
       "h": 440,
+      "full": "img/027.full.webp",
       "bornAt": 1790475545033.0818,
       "repo": "tmp"
     },
@@ -546,6 +590,7 @@
       "name": "pins",
       "w": 1520,
       "h": 260,
+      "full": "img/028.full.webp",
       "bornAt": 1790475545043.5847,
       "repo": "onto",
       "sha": "a1c6614"
