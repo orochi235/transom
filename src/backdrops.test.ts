@@ -18,10 +18,10 @@ describe('PATTERNS', () => {
   })
 
   it('reads a second pitch only where the shader has one', () => {
-    // `uPeriod` is read by the two patterns set on independent axes and by
+    // `uPeriod` is read by the patterns set on independent axes and by
     // nothing else, so a `repeat` row anywhere else would move nothing.
     const withPeriod = BACKDROPS.filter((b) => reads(b, 'period'))
-    expect([...withPeriod].sort()).toEqual(['chevron', 'waves'])
+    expect([...withPeriod].sort()).toEqual(['braid', 'chevron', 'waves'])
   })
 
   it('offers nothing for the patterns that are not ruled', () => {

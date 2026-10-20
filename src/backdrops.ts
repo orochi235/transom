@@ -19,6 +19,8 @@ export const PATTERN_INDEX: Record<Backdrop, number> = {
   basketweave: 13,
   parquet: 14,
   dragonscale: 15,
+  rosette: 16,
+  braid: 17,
 }
 
 /** A control the ruling offers, and a uniform the shader reads. */
@@ -80,6 +82,10 @@ export const PATTERNS: Record<Backdrop, PatternSpec> = {
   parquet: { reads: RULED, tile: (s) => ({ u: 3 * s, v: 3 * s }) },
   // Courses are six tenths of a spacing, and alternate ones are shifted.
   dragonscale: { reads: RULED, tile: (s) => ({ u: s, v: 1.2 * s }) },
+  // A medallion per cell, sixteen rings across: a repeat of its own would sit
+  // at the default two rings, which is no rosette at all.
+  rosette: { reads: RULED, tile: (s) => ({ u: 16 * s, v: 16 * s }) },
+  braid: { reads: TWO_PITCH, tile: (s, p) => ({ u: p, v: s }) },
 }
 
 /** Whether a pattern answers to one of the ruling's controls. */

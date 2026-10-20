@@ -26,6 +26,8 @@ export const BACKDROPS = [
   'dots',
   'checks',
   'argyle',
+  'rosette',
+  'braid',
 ] as const
 
 export type Backdrop = (typeof BACKDROPS)[number]

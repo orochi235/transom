@@ -661,11 +661,12 @@ against every arrangement.
   zooms to a pile when clicked. It fills each icon with the zone's real
   pattern, worn as a mask over the zone's tint — the same pictures the swatches
   wear, drawn by the shader that draws the wall, so there is no second
-  implementation of seventeen patterns here to drift from the first.
+  implementation of the patterns here to drift from the first.
 - **The `zones` group** owns how a zone presents itself: outline, label, and a
   backdrop filling its cell — a ruled hatch by default, or crosshatch, grid,
   chevron, waves, bricks, basketweave, parquet, triangles, hexagons, scales,
-  dragonscale, dots, checks, argyle or a flat tint, all drawn by one shader in
+  dragonscale, dots, checks, argyle, the guilloché rosette and braid, or a flat
+  tint, all drawn by one shader in
   world space so it holds one density across the wall and costs the texture
   budget nothing. **The pattern and how it is ruled are one decision**, so
   density, repeat and rotation sit with the swatches rather than in the

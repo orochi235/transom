@@ -47,6 +47,14 @@ export function createBackdropMaterial(): THREE.ShaderMaterial {
         return 1.0 - smoothstep(width * 0.5 - aa, width * 0.5 + aa, gap);
       }
 
+      // lines() for a ruling bent so that \`d\` climbs \`stretch\` times faster
+      // than distance across it, which keeps a steep stretch as wide as a flat one.
+      float bentLines(float d, float stretch, float spacing, float width) {
+        float gap = abs(fract(d / spacing) - 0.5) * spacing / stretch;
+        float aa = max(fwidth(d) / stretch, 1e-6);
+        return 1.0 - smoothstep(width * 0.5 - aa, width * 0.5 + aa, gap);
+      }
+
       // Cover of the outline at \`radius\` of whatever \`d\` measures distance to.
       //
       // Capped at the line's own width: the curved patterns measure \`d\` from a
@@ -207,6 +215,31 @@ export function createBackdropMaterial(): THREE.ShaderMaterial {
           float y = fract(v / course) * course;
           float rise = (course * course - uSpacing * uSpacing * 0.25) / (2.0 * course);
           cover = ring(length(vec2(x, y - rise)), course - rise, uWidth);
+        } else if (uPattern == 16) {
+          // Rosette: guilloché rings, \`uSpacing\` apart, in a medallion
+          // sixteen of them across. Each ring is pushed in and out on twelve lobes
+          // in proportion to its radius, and a second set runs half a lobe out
+          // of phase, so the two cross into the engraved lattice. Nothing past
+          // the medallion's rim: rings cut by the cell seam read as a fault.
+          float cell = 16.0 * uSpacing;
+          vec2 p = (vec2(fract(u / cell), fract(v / cell)) - 0.5) * cell;
+          float r = length(p);
+          float lobe = sin(12.0 * atan(p.y, p.x)) * r * 0.12;
+          float rim = cell * 0.46;
+          cover = r > rim ? 0.0 : max(lines(r + lobe, uSpacing, uWidth), lines(r - lobe, uSpacing, uWidth));
+        } else if (uPattern == 17) {
+          // Braid: waves' ruling three times over, a third of a wave apart and
+          // swung far enough that each crosses its neighbors — the band of a
+          // banknote border rather than one ripple. Measured across each
+          // curve rather than up it, or the crossings fill in where it is flat.
+          float k = 6.28318531 / uPeriod;
+          float a = uSpacing * 0.8;
+          cover = 0.0;
+          for (int i = 0; i < 3; i++) {
+            float t = u * k + float(i) * 2.09439510;
+            float slope = a * k * cos(t);
+            cover = max(cover, bentLines(v + sin(t) * a, sqrt(1.0 + slope * slope), uSpacing, uWidth));
+          }
         }
         if (cover <= 0.001) discard;
         gl_FragColor = vec4(uColor, uOpacity * cover);
