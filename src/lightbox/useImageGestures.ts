@@ -4,7 +4,7 @@ import { createQuietGate } from '@/nav/quiet.ts'
 import {
   barsOf,
   isZoomed,
-  openView,
+  fitView,
   panBy,
   toggleScale,
   zoomByWheel,
@@ -22,8 +22,8 @@ const DRAG_SLOP_PX = 4
 
 /**
  * How the hand moves the picture inside the lightbox's port: the wheel and a
- * pinch, a drag, a double-click, a window resize, and the click beside the
- * picture that closes it.
+ * pinch, a drag, a click on the picture that trades fit for its own pixels, a
+ * window resize, and the click beside the picture that closes it.
  */
 export function useImageGestures({
   port,
@@ -121,12 +121,7 @@ export function useImageGestures({
       setView((v) =>
         isZoomed(v, image, was)
           ? panBy(v, 0, 0, image, next)
-          : // `openView`, not `fitView`: a panorama that was filled is at a
-            // scale `isZoomed` reads as zoomed, so this arm only ever has an
-            // image that was showing whole — and a panorama resized into a
-            // window it now fits should still open filled rather than as a
-            // sliver of the new one.
-            openView(image, next),
+          : fitView(image, next),
       )
     }
     window.addEventListener('resize', onResize)
@@ -168,16 +163,12 @@ export function useImageGestures({
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
     const panned = drag.current?.moved ?? false
     drag.current = null
-    if (panned || e.target === img.current) return
-    onClose()
-  }
-
-  const at = (e: { clientX: number; clientY: number }) => ({ x: e.clientX, y: e.clientY })
-
-  const onDoubleClick = (e: MouseEvent<HTMLDivElement>) => {
+    if (panned) return
+    if (e.target !== img.current) return onClose()
     setEased(true)
-    setView((v) => zoomTo(v, toggleScale(v, image, size.current), at(e), image, size.current))
+    const at = { x: e.clientX, y: e.clientY }
+    setView((v) => zoomTo(v, toggleScale(v, image, size.current), at, image, size.current))
   }
 
-  return { onPointerDown, onPointerMove, onPointerUp, onClick, onDoubleClick }
+  return { onPointerDown, onPointerMove, onPointerUp, onClick }
 }

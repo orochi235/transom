@@ -13,8 +13,8 @@ import {
   markingView,
   fitView,
   isPanorama,
+  isShrunk,
   isZoomed,
-  openView,
   togglePanorama,
   zoomTo,
   type Size,
@@ -81,7 +81,8 @@ export function ImageLightbox({
   }, [item.id])
 
   const zoomed = isZoomed(view, image, size.current)
-  const { onPointerDown, onPointerMove, onPointerUp, onClick, onDoubleClick } = useImageGestures({
+  const shrunk = isShrunk(view, image, size.current)
+  const { onPointerDown, onPointerMove, onPointerUp, onClick } = useImageGestures({
     port,
     img,
     image,
@@ -108,7 +109,7 @@ export function ImageLightbox({
     setImage(natural)
     // Drawing again swaps a held composite back for the original, and the
     // load that follows must not move the picture out from under the marks.
-    setView(markingRef.current ? markingView(natural, size.current) : openView(natural, size.current))
+    setView(markingRef.current ? markingView(natural, size.current) : fitView(natural, size.current))
     setLoaded(true)
     // A visible element can take focus, and until the first paint this one is
     // still transparent. Focus is what decides the wheel is ours.
@@ -185,13 +186,13 @@ export function ImageLightbox({
         ref={port}
         tabIndex={0}
         data-zoomed={zoomed ? '' : undefined}
+        data-shrunk={shrunk ? '' : undefined}
         data-eased={eased ? '' : undefined}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onClick={onClick}
-        onDoubleClick={onDoubleClick}
         onKeyDown={onKeyDown}
         style={{
           // Numbers, not rules: the transform itself is in the stylesheet. A
@@ -249,9 +250,9 @@ export function ImageLightbox({
             {part}
           </span>
         ))}
-        {/* Only where fitting makes a sliver. A panorama opens filled and this
-            is the way to the whole of it; every other image is already whole,
-            and a button offering to shrink it would mean nothing. */}
+        {/* Only where fitting makes a sliver: a panorama opens whole and this
+            is the way to reading it. Any other fitted image is already as
+            readable as the window allows. */}
         {loaded && isPanorama(image, size.current) && (
           <button
             type="button"
@@ -283,7 +284,7 @@ export function ImageLightbox({
         {/* Last in the row: it changes on every wheel notch, and anything after
             a readout that changes width is a control that shifts under the
             hand. */}
-        {zoomed && (
+        {(zoomed || shrunk) && (
           <span className="lightbox__metaPart lightbox__zoom">
             {Math.round(view.scale * 100)}%
           </span>
@@ -291,7 +292,11 @@ export function ImageLightbox({
       </div>
       {loaded && !marking && (
         <div className="lightbox__loupeCue" aria-hidden="true">
-          {!peeking ? 'hold alt for loupe' : vector ? 'vector' : `${lens} · alt+s to switch`}
+          {peeking
+            ? vector
+              ? 'vector'
+              : `${lens} · alt+s to switch`
+            : `${shrunk ? 'click for full size · ' : zoomed ? 'click to fit · ' : ''}hold alt for loupe`}
         </div>
       )}
       {marking && (

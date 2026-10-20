@@ -17,12 +17,18 @@
   outline: none;
 }
 
-.lightbox__port[data-zoomed] {
+.lightbox__port[data-zoomed],
+.lightbox__port[data-zoomed] .lightbox__img {
   cursor: grab;
 }
 
-.lightbox__port[data-zoomed]:active {
+.lightbox__port[data-zoomed]:active,
+.lightbox__port[data-zoomed]:active .lightbox__img {
   cursor: grabbing;
+}
+
+.lightbox__port[data-shrunk] .lightbox__img {
+  cursor: zoom-in;
 }
 
 /* A frame the artifact itself cannot contain, so a screenshot of the wall is
@@ -61,7 +67,7 @@
   image-rendering: pixelated;
 }
 
-/* Only a discrete zoom eases — a key or a double-click. A wheel or a drag has
+/* Only a discrete zoom eases — a key or a click. A wheel or a drag has
    a hand behind it and must not lag one. */
 .lightbox__port[data-eased] .lightbox__img {
   transition: transform 140ms ease-out;
@@ -81,8 +87,8 @@
   }
 }
 
-/* Present only while the view is off its fitted size, so the line answers
-   "am I at 1:1" without carrying a 100% that means nothing at rest. */
+/* Absent only at rest at 1:1, so the line answers "am I seeing its own
+   pixels" without carrying a 100% that means nothing. */
 .lightbox__zoom {
   color: var(--lb-accent, var(--accent));
 }

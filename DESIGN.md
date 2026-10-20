@@ -404,7 +404,10 @@ down to the window magnifies into its real detail rather than the screen's.
 Alt+S switches it to smoothing between those pixels and back, and the choice
 is remembered per browser; an SVG has no pixels to choose between and is
 redrawn sharp at the lens's scale instead. A pill in the top-left corner says
-to hold Alt, and which mode is on while the lens is up. While it is up the wheel sets its magnification instead of zooming the
+to hold Alt, and which mode is on while the lens is up. Every picture opens
+fitted, panoramas included; when that shrinks it, the cursor over it is a
+magnifier, the pill adds `click for full size`, and a click shows its own pixels
+under the pointer — a second fits it again. While it is up the wheel sets its magnification instead of zooming the
 picture, and the meta row reads the hex color under the pointer. Hold only:
 there is no key that leaves it on. Pages, videos and meshes do not get one,
 and it is off while marking up.

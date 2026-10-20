@@ -7,8 +7,8 @@ import {
   fitScale,
   fitView,
   isPanorama,
+  isShrunk,
   isZoomed,
-  openView,
   MAX_SCALE,
   panBy,
   toggleScale,
@@ -155,16 +155,23 @@ describe('panoramas', () => {
     expect(fillScale({ w: 200, h: 40 }, port)).toBeLessThanOrEqual(1)
   })
 
-  it('opens a panorama filled and everything else fitted', () => {
-    expect(openView(wide, port).scale).toBeCloseTo(fillScale(wide, port), 10)
-    expect(openView(ordinary, port).scale).toBeCloseTo(fitScale(ordinary, port), 10)
-  })
-
   it('toggles a panorama between whole and readable', () => {
-    const filled = openView(wide, port)
+    const filled = { scale: fillScale(wide, port), x: 0, y: 0 }
     expect(togglePanorama(filled, wide, port)).toBeCloseTo(fitScale(wide, port), 10)
     const fitted = { scale: fitScale(wide, port), x: 0, y: 0 }
     expect(togglePanorama(fitted, wide, port)).toBeCloseTo(fillScale(wide, port), 10)
+  })
+})
+
+describe('isShrunk', () => {
+  const port = { w: 1600, h: 1000 }
+
+  it('offers full size only where fitting shrank the image', () => {
+    const big = { w: 4800, h: 600 }
+    expect(isShrunk(fitView(big, port), big, port)).toBe(true)
+    expect(isShrunk({ scale: 1, x: 0, y: 0 }, big, port)).toBe(false)
+    const small = { w: 800, h: 600 }
+    expect(isShrunk(fitView(small, port), small, port)).toBe(false)
   })
 })
 

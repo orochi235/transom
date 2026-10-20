@@ -105,10 +105,16 @@ export function isZoomed(view: View, image: Size, port: Size): boolean {
   return view.scale > fitScale(image, port) + 1e-6
 }
 
+/** Whether the image is fitted smaller than its own pixels: what a click on it
+ *  enlarges, and what the cursor and the corner pill offer to. */
+export function isShrunk(view: View, image: Size, port: Size): boolean {
+  return !isZoomed(view, image, port) && fitScale(image, port) < 1 - 1e-6
+}
+
 /**
- * What double-click alternates between: fitted, or the image's own pixels. From
- * fit it goes to 1:1, and from anywhere else back to fit — so a second
- * double-click always returns you, whatever the wheel did in between.
+ * What a click on the picture alternates between: fitted, or the image's own
+ * pixels. From fit it goes to 1:1, and from anywhere else back to fit — so a
+ * second click always returns you, whatever the wheel did in between.
  */
 export function toggleScale(view: View, image: Size, port: Size): number {
   return isZoomed(view, image, port) ? fitScale(image, port) : 1
@@ -144,17 +150,11 @@ export function isPanorama(image: Size, port: Size, sliver = SLIVER): boolean {
   return Math.min((image.w * scale) / port.w, (image.h * scale) / port.h) < sliver
 }
 
-/** What opening an artifact shows: fitted, unless fitting would make a sliver
- *  of it, in which case filled and ready to be panned along. */
-export function openView(image: Size, port: Size): View {
-  return { scale: isPanorama(image, port) ? fillScale(image, port) : fitScale(image, port), x: 0, y: 0 }
-}
-
 /**
  * What a panorama's own toggle alternates between: the whole thing at once, or
  * enough of it to read. Distinct from `toggleScale`, which trades fit against
  * the image's own pixels — for a panorama those are often the same number, so
- * the double-click would appear to do nothing.
+ * the click would appear to do nothing.
  */
 export function togglePanorama(view: View, image: Size, port: Size): number {
   const filled = fillScale(image, port)
