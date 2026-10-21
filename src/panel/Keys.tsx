@@ -12,7 +12,7 @@ export function Keys({ labels, title }: { labels: readonly string[]; title?: str
   return (
     <span className="keys wzl-skin" title={title}>
       {labels.map((label) => (
-        <KeyCap key={label} label={label} variant="minimal" />
+        <KeyCap key={label} label={label} variant="default" />
       ))}
     </span>
   )

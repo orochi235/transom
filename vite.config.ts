@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { weaselIcons } from '@weasel-js/icons-plugin'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { CLIENT_PORT, DAEMON_PORT } from './server/ports.ts'
@@ -25,6 +26,7 @@ const proxy = { target: daemon, ws: true, changeOrigin: false, xfwd: true }
 export default defineConfig({
   plugins: [
     react(),
+    weaselIcons.vite({ mode: 'app' }),
     schemaInbox({ root: fileURLToPath(new URL('.', import.meta.url)) }),
     clientStale({ root: fileURLToPath(new URL('.', import.meta.url)) }),
   ],

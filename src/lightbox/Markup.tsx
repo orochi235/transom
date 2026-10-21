@@ -14,6 +14,7 @@ import {
   type SurfaceFrame,
 } from '@weasel-js/labkit/surface'
 import { registerCanvasFont } from '@weasel-js/core'
+import { Icon } from '@weasel-js/ui'
 import type { Size } from '@/lightbox/view.ts'
 
 // A text mark is laid out in weasel's default family, which draws nothing
@@ -226,7 +227,7 @@ export function Markup({
               aria-pressed={tool === t.id}
               onClick={() => setTool(t.id)}
             >
-              <t.icon />
+              <Icon name={t.icon} />
             </button>
           ))}
           <button

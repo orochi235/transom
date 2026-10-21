@@ -41,7 +41,7 @@ describe('PARAMS', () => {
     const out = [...prefLeaves(PARAMS)].filter(([, leaf]) => {
       if (leaf.kind !== 'number') return false
       const { min, max, default: value } = leaf as PrefNumber
-      return (min !== undefined && value < min) || (max !== undefined && value > max)
+      return value !== undefined && ((min !== undefined && value < min) || (max !== undefined && value > max))
     })
     expect(out.map(([path]) => path)).toEqual([])
   })

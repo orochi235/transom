@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from '@/App.tsx'
 import { carryIn } from '@/carry.ts'
+import { WeaselIcons } from '@/WeaselIcons.tsx'
 import '@/styles.css'
 // The component styles only. Deliberately not `@weasel-js/theme`'s tokens.css,
 // which also sets a document font and would re-type the whole wall.
@@ -19,7 +20,9 @@ const boot = async () => {
   if (__TRANSOM_DEMO__) await import('@/demo/install.ts')
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <App />
+      <WeaselIcons>
+        <App />
+      </WeaselIcons>
     </StrictMode>,
   )
 }

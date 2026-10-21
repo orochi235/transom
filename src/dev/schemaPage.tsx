@@ -12,6 +12,7 @@ import { AssetEditor, workspaceCodec, type CustomKinds, type SentAsset, type Wor
 import '@weasel-js/theme/tokens.css'
 import '@weasel-js/ui/style.css'
 import { renderersFor } from '@/ParamsForm.tsx'
+import { WeaselIcons } from '@/WeaselIcons.tsx'
 import { defaultParams } from '@/params.ts'
 import { WORKSPACE } from '@/schema/assets.ts'
 import { SCHEMA_INBOX_EVENT, SCHEMA_INBOX_ROUTE } from './schemaInbox.ts'
@@ -88,6 +89,8 @@ const root = document.getElementById('root')
 if (!root) throw new Error('no #root element')
 createRoot(root).render(
   <StrictMode>
-    <SchemaPage />
+    <WeaselIcons>
+      <SchemaPage />
+    </WeaselIcons>
   </StrictMode>,
 )
