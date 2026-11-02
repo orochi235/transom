@@ -47,6 +47,13 @@ export const cards: PrefGroup = {
         filterDim: to('overlay.filterDim'),
       },
     },
+    matte: {
+      name: 'matte',
+      children: {
+        where: to('matte.where'),
+        opacity: to('matte.opacity'),
+      },
+    },
     colors: {
       name: 'colors',
       children: {

@@ -22,6 +22,7 @@ import { zones } from '@/schema/params/zones.ts'
 import { sky } from '@/schema/params/sky.ts'
 import { colors } from '@/schema/params/colors.ts'
 import { lod } from '@/schema/params/lod.ts'
+import { matte } from '@/schema/params/matte.ts'
 
 export const PARAMS: PrefGroup = {
   name: 'params',
@@ -70,5 +71,6 @@ export const PARAMS: PrefGroup = {
     sky,
     colors,
     lod,
+    matte,
   },
 }

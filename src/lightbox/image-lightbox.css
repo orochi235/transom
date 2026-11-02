@@ -119,3 +119,13 @@
   top: calc(var(--lb-bar-at) * 100%);
   height: calc(var(--lb-bar) * 100%);
 }
+
+/* Behind the picture's transparent pixels only: the background paints inside
+   the image's own box, and an opaque pixel covers it. The squares are divided
+   by the zoom so they stay 8px on screen, as an image editor's do. */
+:root[data-lightbox-matte] .lightbox__img {
+  --matte-dark: color-mix(in srgb, #ccc calc(var(--matte-opacity) * 100%), transparent);
+  --matte-light: color-mix(in srgb, #fff calc(var(--matte-opacity) * 100%), transparent);
+  background: repeating-conic-gradient(var(--matte-dark) 0 25%, var(--matte-light) 0 50%) 0 0 /
+    calc(16px / var(--lb-scale)) calc(16px / var(--lb-scale));
+}

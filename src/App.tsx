@@ -7,6 +7,7 @@ import { Prefs } from '@/Prefs.tsx'
 import { ZoneConfig } from '@/ZoneConfig.tsx'
 import { layoutKeyOf } from '@/params.layout.ts'
 import { defaultParams, embedParams } from '@/params.ts'
+import { matteIn } from '@/params/matte.ts'
 import { loadParams, saveParams } from '@/params.store.ts'
 import { useBandState } from '@/nav/useBandState.ts'
 import { Toasts } from '@/Toasts.tsx'
@@ -88,6 +89,12 @@ export function App() {
   useEffect(() => {
     document.documentElement.style.setProperty('--chrome-face', stackFor(params.typeface.chrome))
   }, [params.typeface.chrome])
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.toggleAttribute('data-lightbox-matte', matteIn(params.matte.where, 'lightbox'))
+    root.style.setProperty('--matte-opacity', String(params.matte.opacity))
+  }, [params.matte.where, params.matte.opacity])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -18,6 +18,8 @@ import { layOut } from '@/backends/webgl/layOut.ts'
 import { placeCornerChips } from '@/backends/webgl/cornerChips.ts'
 import { applyPose } from '@/backends/webgl/pose.ts'
 import { seekPlates } from '@/backends/webgl/seekPlates.ts'
+import { setMatte } from '@/backends/webgl/matte.ts'
+import { matteIn } from '@/params/matte.ts'
 import type { useBounds } from '@/backends/webgl/useBounds.ts'
 import type { useCardTextures } from '@/backends/webgl/useCardTextures.ts'
 import type { Chrome } from '@/backends/webgl/useChrome.ts'
@@ -73,6 +75,7 @@ export function useWallFrame({
   const cardEdgeColor = params.colors.cardEdge
   const badgeFamily = stackFor(params.typeface.badge)
   const huedCardEdge = params.zones.huedCardEdge
+  const matte = matteIn(params.matte.where, 'stacks') ? params.matte.opacity : 0
 
   useFrame((_state, delta) => {
     const current = latest.current
@@ -244,6 +247,7 @@ export function useWallFrame({
       // card waiting for its decode has to read as a slot, not as a picture.
       const tint = tex ? WHITE : blank
       if (!mat.color.equals(tint)) mat.color.copy(tint)
+      setMatte(mat, matte, aspect)
       const cut = (dimmed.has(id) ? params.overlay.filterDim : 1) * revealed.current
       mat.opacity = (ch.opacity ?? 1) * cut
       mat.transparent = true
