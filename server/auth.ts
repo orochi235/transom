@@ -36,10 +36,15 @@ export function clientAddress(req: Pick<Request, 'socket' | 'headers'>): string 
 const READS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
 /** Every request that changes something, from every route: a route mounted
- *  later cannot forget it. Reads stay open so another host can watch. */
-export function guardWrites(token: string, opts: { trustLoopback?: boolean } = {}): RequestHandler {
+ *  later cannot forget it. With `openReads`, another host can watch without
+ *  the token; without it, every request from off this host wants it. */
+export function guardWrites(
+  token: string,
+  opts: { trustLoopback?: boolean; openReads?: boolean } = {},
+): RequestHandler {
   const gate = guard(token, opts)
-  return (req, res, next) => (READS.has(req.method) ? next() : gate(req, res, next))
+  const open = opts.openReads ?? false
+  return (req, res, next) => (open && READS.has(req.method) ? next() : gate(req, res, next))
 }
 
 /** `trustLoopback: false` is for tests, which can only ever call from loopback. */

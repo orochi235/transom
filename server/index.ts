@@ -1,10 +1,10 @@
 import express from 'express'
 import { build } from './build.ts'
 import { WebSocketServer, type WebSocket } from 'ws'
-import { createServer } from 'node:http'
+import { createServer, type IncomingMessage } from 'node:http'
 import { mkdir } from 'node:fs/promises'
 import { config } from './config.ts'
-import { guardWrites, loadToken } from './auth.ts'
+import { allowed, clientAddress, guardWrites, loadToken } from './auth.ts'
 import { mountRemote } from './remote.ts'
 import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
@@ -38,7 +38,7 @@ await mkdir(config.cache, { recursive: true })
 const token = await loadToken(config.token)
 
 const app = express()
-app.use(guardWrites(token))
+app.use(guardWrites(token, { openReads: config.openReads }))
 mountRemote(app, { token })
 const http = createServer(app)
 const clients = new Set<WebSocket>()
@@ -71,7 +71,14 @@ const greet = (ws: WebSocket) => {
   }
   ws.send(JSON.stringify(hello))
 }
-const sockets = (server: typeof http) => new WebSocketServer({ server, path: '/ws' }).on('connection', greet)
+// An upgrade never reaches express, so the read gate is repeated here.
+const sockets = (server: typeof http) =>
+  new WebSocketServer({
+    server,
+    path: '/ws',
+    verifyClient: ({ req }: { req: IncomingMessage }) =>
+      config.openReads || allowed(clientAddress(req), req.headers.authorization, token),
+  }).on('connection', greet)
 const wss = sockets(http)
 
 mountWall(app, { broadcast, disk: () => disk })

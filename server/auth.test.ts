@@ -65,9 +65,9 @@ describe('guard behind the proxy', () => {
 })
 
 describe('guardWrites', () => {
-  async function call(method: string, headers: Record<string, string> = {}) {
+  async function call(method: string, headers: Record<string, string> = {}, openReads = true) {
     const app = express()
-    app.use(guardWrites('t'))
+    app.use(guardWrites('t', { openReads }))
     app.all('/api/items/x/open', (_req, res) => void res.send('ok'))
     const server = app.listen(0)
     await new Promise((r) => server.once('listening', r))
@@ -86,5 +86,10 @@ describe('guardWrites', () => {
   it('leaves reads open, and the wall on this host alone', async () => {
     expect(await call('GET', lan)).toBe(200)
     expect(await call('POST')).toBe(200)
+  })
+  it('wants the token for a read from another host unless reads are open', async () => {
+    expect(await call('GET', lan, false)).toBe(401)
+    expect(await call('GET', { ...lan, Authorization: 'Bearer t' }, false)).toBe(200)
+    expect(await call('GET', {}, false)).toBe(200)
   })
 })

@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "concurrently -n daemon,client -c cyan,magenta \"npm:dev:daemon\" \"npm:dev:client\"",
-    "dev:daemon": "node tools/free-port.mjs 8787 && tsx watch server/index.ts",
+    "dev:daemon": "node tools/free-port.mjs 8787 && TRANSOM_OPEN_READS=1 tsx watch server/index.ts",
     "dev:client": "vite",
     "sim": "tsx server/sim.ts",
     "typecheck": "tsc --noEmit",

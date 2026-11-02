@@ -1192,10 +1192,14 @@ answers 404 for a file not on the wall rather than falling back to the pile,
 because a file link that answered with a page would read as the file.
 A send prints only the `wall:` link.
 
-**Every route above, and every request on any route that is not a `GET`, needs
-the token from any address but loopback.** Reads stay open, so a wall page
-opened from another host shows the wall but cannot dismiss, keep, answer, draw
-or open anything. The daemon writes a random token to `~/transom/token` the
+**Every request from any address but loopback needs the token, unless
+`TRANSOM_OPEN_READS=1`, which leaves its reads open.** Any address means any:
+the LAN, a VPN or tailnet peer, and the internet if the port is reachable from
+it. A release ships with reads closed; a checkout's agents and `npm run dev` open
+them, so a wall page opened from another host shows the wall but cannot
+dismiss, keep, answer, draw or open anything. The websocket is held to the same
+rule as a read. Paired senders are unaffected either way: every route they call
+already sends the token. The daemon writes a random token to `~/transom/token` the
 first time it starts, and sets the file to mode 600 each time it reads it. A
 request without it gets 401 and `this wall wants its token`. The page server on
 `:7750` proxies `/api` and adds `X-Forwarded-For`, so a request arriving on
@@ -1204,8 +1208,8 @@ page server needs the token too. Under Homebrew's service the daemon listens on
 `:7750` itself and sees the peer directly. To change the token, delete the file, restart
 the daemon, and pair each node again.
 
-`GET /api/marks/<id>.png` stays open: the wall page loads drawings from it, and
-it shows nothing `/img` and `/orig` do not.
+`GET /api/marks/<id>.png` is a read like any other: the wall page loads
+drawings from it, and it shows nothing `/img` and `/orig` do not.
 
 **Remote requests carry `X-Transom-Protocol: 1`.** On the inbox, answers and
 whoami routes a different number gets 426 and `this wall speaks protocol 1, the

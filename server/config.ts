@@ -24,6 +24,9 @@ export const config = {
    *  Homebrew's service sets it; a checkout runs vite on that port instead. */
   page: process.env.TRANSOM_PAGE,
   pagePort: CLIENT_PORT,
+  /** Whether another host may read the wall without the token. Off for a
+   *  release; a checkout's agents and `npm run dev` turn it on. */
+  openReads: process.env.TRANSOM_OPEN_READS === '1',
   ttlMs: parseDuration(process.env.TRANSOM_TTL ?? '8h') ?? 28_800_000,
   trashMs: parseDuration(process.env.TRANSOM_TRASH_TTL ?? '24h') ?? 86_400_000,
   trashMaxBytes: parseBytes(process.env.TRANSOM_TRASH_MAX, 10 * 1024 ** 3),
