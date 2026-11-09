@@ -41,6 +41,8 @@ export type Wall = {
    *  fired so a wall that was closed does not open a queue of them at once —
    *  only the newest is still worth looking at. */
   announce: WallItem | null
+  /** The last arrival of any level, for a lightbox that follows them. */
+  arrival: WallItem | null
   /** Sounds the daemon has played that the wall has not yet explained, oldest
    *  first. A toast exists for as long as its entry does. */
   alerts: Alert[]
@@ -67,6 +69,7 @@ export function useWall(): Wall {
   const [daemonCode, setDaemonCode] = useState<Build | null>(null)
   const [clientStale, setClientStale] = useState<ClientStale | null>(null)
   const [announce, setAnnounce] = useState<WallItem | null>(null)
+  const [arrival, setArrival] = useState<WallItem | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
   const clockOffset = useRef(0)
   const dismissAlert = useCallback(
@@ -144,6 +147,7 @@ export function useWall(): Wall {
             })
           } else if (msg.type === 'arrive') {
             setItems((prev) => [...prev, msg.item])
+            setArrival(msg.item)
             const level = msg.item.attention?.level
             if (level && ALERTS[level].lightbox) setAnnounce(msg.item)
           } else if (msg.type === 'amend') {
@@ -234,6 +238,7 @@ export function useWall(): Wall {
     daemonStale: daemonBuild !== null && daemonCode !== null && !agree(daemonBuild, daemonCode),
     clientStale: clientStale && clientStale.count > 0 ? clientStale : null,
     announce,
+    arrival,
     alerts,
     dismissAlert,
   }

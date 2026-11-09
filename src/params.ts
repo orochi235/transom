@@ -7,6 +7,7 @@ import type { SceneParams } from '@/params/scene.ts'
 import type { ColorParams } from '@/params/colors.ts'
 import type { LodParams } from '@/params/lod.ts'
 import type { MatteParams } from '@/params/matte.ts'
+import type { FollowParams } from '@/params/follow.ts'
 import { defaultsOf } from '@/schema/defaults.ts'
 import { PARAMS } from '@/schema/params.ts'
 
@@ -24,6 +25,7 @@ export type StackParams = PileParams
   & ColorParams
   & LodParams
   & MatteParams
+  & FollowParams
 
 /** The schema holds each param's default beside its range and its name, so
  *  the type above is the only other place the shape is written down. */

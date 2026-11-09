@@ -34,6 +34,8 @@ function band(items: WallItem[], hosts: string[] = []) {
       allowParallax={false}
       listed={false}
       onList={() => {}}
+      follow="off"
+      onFollow={() => {}}
     />,
   )
 }

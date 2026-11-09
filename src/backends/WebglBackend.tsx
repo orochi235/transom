@@ -20,6 +20,7 @@ import { cardOf, zoneOf } from '@/view-state.ts'
 import type { Props } from '@/backends/webgl/types.ts'
 import { useBandKeys } from '@/backends/webgl/useBandKeys.ts'
 import { useCardMenu } from '@/backends/webgl/useCardMenu.ts'
+import { useFollow } from '@/backends/webgl/useFollow.ts'
 import { useFakeFlags } from '@/backends/webgl/useFakeFlags.ts'
 import { useInsets } from '@/backends/webgl/useInsets.ts'
 import { useReplies } from '@/backends/webgl/useReplies.ts'
@@ -148,6 +149,7 @@ export function WebglBackend(props: Props) {
   }, [setListed])
 
   useBandKeys(setListed, setSort, undo)
+  const follow = useFollow(props, items, view, dispatch)
 
   // An orthographic camera sees a slab, not a cone, so `far` has to clear the
   // standoff plus everything the rank cap can put behind the wall.
@@ -193,6 +195,8 @@ export function WebglBackend(props: Props) {
           offWall={props.arrangement.flat ? offWall : 0}
           listed={listed}
           onList={toggleList}
+          follow={follow.mode}
+          onFollow={follow.cycle}
           connected={props.connected}
           stale={props.stale}
           pageStale={props.pageStale}

@@ -49,6 +49,7 @@ export function App() {
     clientStale,
     disk,
     announce,
+    arrival,
     alerts,
     dismissAlert,
   } = useWall()
@@ -129,6 +130,7 @@ export function App() {
         onConfigureZone={setConfiguring}
         onPrefs={() => setPrefs(true)}
         announce={announce}
+        arrival={arrival}
         connected={connected}
         stale={daemonStale}
         pageStale={clientStale}

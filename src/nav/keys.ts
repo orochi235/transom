@@ -67,6 +67,12 @@ export function togglesList(e: KeySample): boolean {
   return e.key.toLowerCase() === 'l'
 }
 
+/** Whether a keystroke steps which arrivals an open lightbox follows. */
+export function cyclesFollow(e: KeySample): boolean {
+  if (e.metaKey || e.ctrlKey || e.altKey) return false
+  return e.key.toLowerCase() === 'f'
+}
+
 /**
  * Whether a keystroke was aimed at a control rather than at the wall. An arrow
  * steps a focused slider and a letter lands in a field; either way the wall

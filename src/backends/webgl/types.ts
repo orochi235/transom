@@ -29,6 +29,8 @@ export type Props = {
   onPrefs: () => void
   /** An arrival whose level asks to be opened the moment it lands. */
   announce: WallItem | null
+  /** The newest arrival of any level, which an open lightbox may follow. */
+  arrival: WallItem | null
   /** Whether the daemon is still on the other end of the socket. */
   connected: boolean
   /** Whether the daemon is running different code from this wall. A LaunchAgent

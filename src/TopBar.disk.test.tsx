@@ -33,6 +33,8 @@ function band(disk: Disk | null) {
       allowParallax={false}
       listed={false}
       onList={() => {}}
+      follow="off"
+      onFollow={() => {}}
     />,
   )
 }

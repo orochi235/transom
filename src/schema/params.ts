@@ -23,6 +23,7 @@ import { sky } from '@/schema/params/sky.ts'
 import { colors } from '@/schema/params/colors.ts'
 import { lod } from '@/schema/params/lod.ts'
 import { matte } from '@/schema/params/matte.ts'
+import { follow } from '@/schema/params/follow.ts'
 
 export const PARAMS: PrefGroup = {
   name: 'params',
@@ -72,5 +73,6 @@ export const PARAMS: PrefGroup = {
     colors,
     lod,
     matte,
+    follow,
   },
 }

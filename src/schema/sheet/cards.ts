@@ -54,6 +54,12 @@ export const cards: PrefGroup = {
         opacity: to('matte.opacity'),
       },
     },
+    follow: {
+      name: 'follow',
+      children: {
+        arrivals: to('follow.arrivals'),
+      },
+    },
     colors: {
       name: 'colors',
       children: {

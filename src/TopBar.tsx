@@ -6,6 +6,7 @@ import { hostTally } from '@/nav/host-filter.ts'
 import type { SortKey } from '@/nav/sort.ts'
 import type { Disk, WallItem } from '@shared/protocol.ts'
 import type { StackParams } from '@/params.ts'
+import type { FollowMode } from '@/params/follow.ts'
 import type { ClientStale } from '@/dev/clientStale.ts'
 import { TimePanel } from '@/topbar/TimePanel.tsx'
 import { SortPanel } from '@/topbar/SortPanel.tsx'
@@ -45,6 +46,8 @@ export function TopBar({
   allowParallax,
   listed,
   onList,
+  follow,
+  onFollow,
 }: {
   items: readonly WallItem[]
   /** The daemon's clock, so the axis agrees with every age on the wall. */
@@ -90,6 +93,9 @@ export function TopBar({
   /** Whether the lightbox pages the whole wall as one list. */
   listed: boolean
   onList: () => void
+  /** Which arrivals an open lightbox jumps to. */
+  follow: FollowMode
+  onFollow: () => void
 }) {
   const tally = useMemo(() => kindTally(items), [items])
   const senders = useMemo(() => hostTally(items, hosts), [items, hosts])
@@ -120,6 +126,8 @@ export function TopBar({
         arrangement={arrangement}
         listed={listed}
         onList={onList}
+        follow={follow}
+        onFollow={onFollow}
         count={count}
         offWall={offWall}
         connected={connected}

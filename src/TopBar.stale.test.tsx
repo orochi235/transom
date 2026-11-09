@@ -31,6 +31,8 @@ function band(pageStale: ClientStale | null) {
       allowParallax={false}
       listed={false}
       onList={() => {}}
+      follow="off"
+      onFollow={() => {}}
     />,
   )
 }

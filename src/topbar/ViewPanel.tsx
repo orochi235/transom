@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { Panel, PanelRow } from '@/panel/index.ts'
 import type { Disk } from '@shared/protocol.ts'
 import type { ClientStale } from '@/dev/clientStale.ts'
+import type { FollowMode } from '@/params/follow.ts'
 
 const gb = (bytes: number) => (bytes / 1024 ** 3).toFixed(1)
 
@@ -13,6 +14,8 @@ export function ViewPanel({
   arrangement,
   listed,
   onList,
+  follow,
+  onFollow,
   count,
   offWall,
   connected,
@@ -25,6 +28,8 @@ export function ViewPanel({
   arrangement: string
   listed: boolean
   onList: () => void
+  follow: FollowMode
+  onFollow: () => void
   count: number
   offWall: number
   connected: boolean
@@ -57,6 +62,13 @@ export function ViewPanel({
           keysTitle="L pages the whole wall as one list"
           selected={listed}
           onSelect={onList}
+        />
+        <PanelRow
+          label={follow === 'off' ? 'follow' : `follow ${follow}`}
+          keys={['F']}
+          keysTitle="F steps what an open lightbox jumps to as it lands: nothing, its own stack, or anything"
+          selected={follow !== 'off'}
+          onSelect={onFollow}
         />
         <span className="topbar__tally">
           <span className="topbar__count">{count}</span> {count === 1 ? 'item' : 'items'}

@@ -6,6 +6,7 @@ import {
   opensIn,
   sortFor,
   togglesList,
+  cyclesFollow,
 } from '@/nav/keys.ts'
 
 describe('directionFor', () => {
@@ -133,5 +134,14 @@ describe('sortFor', () => {
     expect(key('F1', { metaKey: true })).toBeNull()
     expect(key('F1', { ctrlKey: true })).toBeNull()
     expect(key('F1', { altKey: true })).toBeNull()
+  })
+})
+
+describe('cyclesFollow', () => {
+  it('takes F in either case and leaves a modified one alone', () => {
+    expect(cyclesFollow({ key: 'f' })).toBe(true)
+    expect(cyclesFollow({ key: 'F' })).toBe(true)
+    expect(cyclesFollow({ key: 'f', metaKey: true })).toBe(false)
+    expect(cyclesFollow({ key: 'l' })).toBe(false)
   })
 })
