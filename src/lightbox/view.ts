@@ -40,13 +40,24 @@ export function fitView(image: Size, port: Size): View {
 }
 
 /**
+ * How far one axis's pannable extent runs: the drawn image plus, on each side,
+ * the margin a fitted image keeps. Panned to its stop, the image's edge sits
+ * that far in from the window's, frame and all, so the end of the track is
+ * visibly the end of the picture. At fit this equals the window exactly, so a
+ * fitted image still has nothing to pan.
+ */
+const extentOf = (drawn: number, within: number) => drawn + within * (1 - FIT_MARGIN)
+
+/**
  * Pan held inside the viewport. An axis whose image is smaller than the window
- * is centered and cannot be dragged; an axis larger than it may travel exactly
- * far enough to bring either edge to the window's edge and no further. Letting
- * a large image drift off into the scrim is the usual sloppy-viewer failure.
+ * is centered and cannot be dragged; an axis larger than it may travel far
+ * enough to bring either edge, and its margin, into the window and no further.
+ * Letting a large image drift off into the scrim is the usual sloppy-viewer
+ * failure.
  */
 export function clampPan(view: View, image: Size, port: Size): View {
-  const slack = (drawn: number, within: number) => Math.max(0, (drawn - within) / 2)
+  const slack = (drawn: number, within: number) =>
+    Math.max(0, (extentOf(drawn, within) - within) / 2)
   const rx = slack(image.w * view.scale, port.w)
   const ry = slack(image.h * view.scale, port.h)
   return {
@@ -179,8 +190,9 @@ export function barsOf(
   port: Size,
 ): { x: Bar | null; y: Bar | null } {
   const axis = (drawn: number, within: number, offset: number): Bar | null => {
-    if (drawn <= within + 1e-6) return null
-    return { size: within / drawn, at: (drawn / 2 - offset - within / 2) / drawn }
+    const extent = extentOf(drawn, within)
+    if (extent <= within + 1e-6) return null
+    return { size: within / extent, at: (extent / 2 - offset - within / 2) / extent }
   }
   return {
     x: axis(image.w * view.scale, port.w, view.x),

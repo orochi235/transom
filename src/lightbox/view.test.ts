@@ -47,10 +47,18 @@ describe('clampPan', () => {
     expect(held.y).toBeCloseTo(0)
   })
 
-  it('lets an oversized axis travel exactly to its own edge', () => {
-    // At 1:1 a 4000px image in a 1000px window has 1500px of slack each way.
-    expect(clampPan({ scale: 1, x: 9999, y: 0 }, big, port).x).toBe(1500)
-    expect(clampPan({ scale: 1, x: -9999, y: 0 }, big, port).x).toBe(-1500)
+  it('lets an oversized axis travel to its own edge and the fitted margin past it', () => {
+    // At 1:1 a 4000px image in a 1000px window has 1500px of slack each way,
+    // plus the 30px a fitted image keeps from the window's edge.
+    expect(clampPan({ scale: 1, x: 9999, y: 0 }, big, port).x).toBeCloseTo(1530)
+    expect(clampPan({ scale: 1, x: -9999, y: 0 }, big, port).x).toBeCloseTo(-1530)
+  })
+
+  it('holds a fitted image still, its margin and all', () => {
+    const fitted = fitView(big, port)
+    const held = clampPan({ ...fitted, x: 400, y: 400 }, big, port)
+    expect(held.x).toBeCloseTo(0)
+    expect(held.y).toBeCloseTo(0)
   })
 
   it('leaves a pan that is already inside alone', () => {
@@ -100,7 +108,7 @@ describe('panBy', () => {
   it('accumulates a drag and holds it inside the viewport', () => {
     const from = { scale: 1, x: 0, y: 0 }
     expect(panBy(from, 100, 50, big, port)).toEqual({ scale: 1, x: 100, y: 50 })
-    expect(panBy(from, 9999, 0, big, port).x).toBe(1500)
+    expect(panBy(from, 9999, 0, big, port).x).toBeCloseTo(1530)
   })
 })
 
@@ -184,18 +192,18 @@ describe('barsOf', () => {
   })
 
   it('sizes the bar by how much of the image is on screen', () => {
-    // Drawn 4000 wide in a 1000 window: a quarter of it is visible.
+    // Drawn 4000 wide in a 1000 window, with 30px of margin at either end.
     const bars = barsOf({ scale: 1, x: 0, y: 0 }, image, port)
-    expect(bars.x?.size).toBeCloseTo(0.25)
-    expect(bars.x?.at).toBeCloseTo(0.375)
-    expect(bars.y?.size).toBeCloseTo(0.5)
+    expect(bars.x?.size).toBeCloseTo(1000 / 4060)
+    expect(bars.x?.at).toBeCloseTo(1530 / 4060)
+    expect(bars.y?.size).toBeCloseTo(1000 / 2060)
   })
 
   it('puts the bar at either end when the pan is against its stop', () => {
     const port = { w: 1000, h: 1000 }
     const at = (x: number) => barsOf(clampPan({ scale: 1, x, y: 0 }, image, port), image, port).x?.at
     expect(at(10_000)).toBeCloseTo(0)
-    expect(at(-10_000)).toBeCloseTo(0.75)
+    expect(at(-10_000)).toBeCloseTo(1 - 1000 / 4060)
   })
 })
 
