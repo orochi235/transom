@@ -1496,6 +1496,16 @@ everything a node sends a remote wall goes through `curl`: `post`, `ask`,
   card, and needs a history in the lightbox and a way to mark it resolved. Worth
   it only if follow-ups keep arriving as new cards.
 - **Multi-monitor.** Does a zone ever span displays, or is one board one screen?
+- **Version compatibility between a packaged wall and its daemon.** The build
+  stamp (`server/build.ts`, `stamp`) is the last commit touching the daemon's
+  code plus a hash of its uncommitted changes, and a copy installed from a
+  tarball has no git, so it reports `unknown`, which `agree` in
+  `shared/build.ts` treats as matching anything. That is right for the stale
+  chip, but it means nothing can tell a packaged page talking to an older or
+  newer daemon, and `shared/protocol.ts` carries no protocol or schema version.
+  Embedding the package version and a protocol version in both halves would
+  give an explicit incompatible state with a recovery line. (filed 2026-11-15
+  from automated review)
 - **Where unsent marks go when their session has gone — TODO, deliberately
   unbuilt.** Today a drawing whose sender has exited stays on its card until
   the viewer discards it (see *Marking up a render*). A queue that hands it to
