@@ -15,6 +15,10 @@ export type Build = {
   /** Whether the daemon's code had uncommitted changes at that moment. A dirty
    *  tree makes the sha a weaker claim, not a wrong one. */
   dirty: boolean
+  /** A hash of the uncommitted changes to the daemon's code, empty when clean,
+   *  so two different dirty trees on one sha do not read as the same build.
+   *  Absent from a daemon older than the field. */
+  tree?: string
   /** When the process started, which dates the sha. */
   startedAt: number
 }
@@ -32,11 +36,12 @@ export const UNKNOWN: Build = { sha: 'unknown', dirty: false, startedAt: 0 }
  */
 export function agree(a: Build, b: Build): boolean {
   if (a.sha === 'unknown' || b.sha === 'unknown') return true
-  return a.sha === b.sha
+  if (a.sha !== b.sha) return false
+  return a.tree === undefined || b.tree === undefined || a.tree === b.tree
 }
 
 /** How to say a build in one short line, for a chip or a doctor's report. */
 export function describe(build: Build): string {
   if (build.sha === 'unknown') return 'unknown'
-  return `${build.sha}${build.dirty ? '+' : ''}`
+  return `${build.sha}${build.dirty ? `+${build.tree ?? ''}` : ''}`
 }

@@ -85,7 +85,7 @@ const main = async () => {
     if (!agree(daemon, code)) {
       const behind = run('git', 'rev-list', '--count', `${daemon.sha}..HEAD`, '--', ...DAEMON_PATHS)
       console.log(
-        `               STALE — ${behind ? `${behind} daemon commits behind` : 'a different build'}.`,
+        `               STALE — ${daemon.sha === code.sha ? 'different uncommitted changes' : behind ? `${behind} daemon commits behind` : 'a different build'}.`,
       )
       console.log('               Fix: npm run daemon:restart')
     }
