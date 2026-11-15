@@ -18,8 +18,8 @@ matches this checkout. `npm run daemon:restart` kickstarts it.
 
 The wall says so too: the band shows a `daemon stale` chip when the build the
 daemon started from disagrees with its code on disk (`/api/code`). Both are the
-last commit touching `server/`, `shared/` or the package files, so a
-client-only commit never trips it. Vite reloads itself, so the client half is
+last commit touching `server/`, `shared/` or the package files, plus a hash of
+their uncommitted changes, so a client-only commit never trips it. Vite reloads itself, so the client half is
 rarely the stale one — but it only reloads on file events, and macOS has
 stopped delivering them once. When it misses one the band shows `page stale`
 and `doctor` names the files; `transom cycle` catches the page up to the disk.
