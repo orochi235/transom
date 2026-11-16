@@ -4,8 +4,8 @@ import { App } from '@/App.tsx'
 import { carryIn } from '@/carry.ts'
 import { WeaselIcons } from '@/WeaselIcons.tsx'
 import '@/styles.css'
-// The component styles only. Deliberately not `@weasel-js/theme`'s tokens.css,
-// which also sets a document font and would re-type the whole wall.
+// The component styles only, not `@weasel-js/theme`'s tokens.css: the wall
+// sets the tokens its weasel components read itself, in weasel.css.
 import '@weasel-js/ui/style.css'
 import '@/weasel.css'
 

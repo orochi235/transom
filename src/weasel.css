@@ -1,7 +1,8 @@
 /*
  * The tokens weasel's controls read, mapped onto the wall's own palette.
- * Written out here rather than by importing `@weasel-js/theme` — its
- * tokens.css also sets a document font and would re-type the whole wall.
+ * Written out here rather than by importing `@weasel-js/theme`'s tokens.css,
+ * which sets all of its tokens on :root; most of these differ from its
+ * defaults anyway.
  * Worn by each element that holds weasel components, never by the document,
  * so nothing here reaches the rest of the chrome.
  */
